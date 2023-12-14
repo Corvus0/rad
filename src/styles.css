@@ -1,0 +1,185 @@
+@font-face {
+  font-family: Montserrat;
+  src: url("fonts/Montserrat.ttf");
+}
+
+/*
+  1. Use a more-intuitive box-sizing model.
+*/
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+/*
+  2. Remove default margin
+*/
+* {
+  margin: 0;
+}
+/*
+  Typographic tweaks!
+  3. Add accessible line-height
+  4. Improve text rendering
+*/
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+/*
+  5. Improve media defaults
+*/
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+/*
+  6. Remove built-in form typography styles
+*/
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+/*
+  7. Avoid text overflows
+*/
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: Montserrat;
+  overflow-wrap: break-word;
+}
+/*
+  8. Create a root stacking context
+*/
+/* #root,
+#__next {
+  isolation: isolate;
+} */
+
+html,
+body,
+#app,
+.container {
+  height: 100%;
+  overflow: hidden;
+}
+
+:root {
+  font-family: Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color: #0f0f0f;
+  background-color: #f6f6f6;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+.container {
+  margin: 0;
+  padding: 5vh 5vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+}
+
+a {
+  font-weight: 500;
+  color: #ff4500;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #ff6600;
+}
+
+h1 {
+  text-align: center;
+}
+
+input,
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  color: #0f0f0f;
+  background-color: #ffffff;
+  transition: border-color 0.25s;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: #ff602c;
+}
+button:active {
+  border-color: #ff602c;
+  background-color: #e8e8e8;
+}
+
+input,
+button {
+  outline: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #f6f6f6;
+    background-color: #2f2f2f;
+  }
+
+  a:hover {
+    color: #ff4500;
+  }
+
+  input,
+  button {
+    color: #ffffff;
+    background-color: #0f0f0f98;
+  }
+  button:active {
+    background-color: #0f0f0f69;
+  }
+}
+
+.iconify {
+  font-size: 24px;
+  display: inline;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+
+::selection {
+  background-color: #572c2c;
+}
