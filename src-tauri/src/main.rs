@@ -2,10 +2,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod downloads;
-use std::collections::HashMap;
-
 use downloads::*;
+use mp4ameta::Tag;
+use regex::Regex;
 use reqwest::Client;
+use std::collections::HashMap;
 use tauri::{Manager, State};
 use tokio::{
     self,
@@ -173,6 +174,9 @@ async fn download_file(download: DownloadItem, client: Client) -> Result<(), Str
             download.op(),
             download.title()
         );
+        let invalid_chars = Regex::new(r#"[<>:"/\\\?\*]+"#)
+            .map_err(|e| format!("Invalid regex pattern: {}", e.to_string()))?;
+        let filename = invalid_chars.replace_all(&filename, "").to_string();
         if std::path::Path::new(&filename).exists() {
             return Err("File already exists".to_owned());
         }
@@ -192,6 +196,15 @@ async fn download_file(download: DownloadItem, client: Client) -> Result<(), Str
             Ok(_) => (),
             Err(e) => return Err(format!("Failed to write data to file: {}", e.to_string())),
         };
+        let mut tags = Tag::read_from_path(&filename)
+            .map_err(|e| format!("Failed to read tags from file: {}", e.to_string()))?;
+        tags.set_artist(download.op());
+        tags.set_album(download.op());
+        tags.set_album_artist(download.op());
+        tags.set_title(download.title());
+        tags.set_genre(download.sub());
+        tags.write_to_path(&filename)
+            .map_err(|e| format!("Failed to write tags to file: {}", e.to_string()))?;
         Ok(())
     });
     match handle.await {
