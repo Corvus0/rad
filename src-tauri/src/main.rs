@@ -83,7 +83,7 @@ async fn get_downloads(state: State<'_, Downloads>) -> Result<Vec<DownloadItem>,
 async fn add_download(
     download_input: DownloadInput,
     state: State<'_, Downloads>,
-) -> Result<Vec<DownloadItem>, String> {
+) -> Result<DownloadItem, String> {
     let mut url_id = state.url_id.lock().await;
     let input_url = download_input.url().to_owned();
     if url_id.contains_key(&input_url) {
@@ -92,19 +92,17 @@ async fn add_download(
     let mut id = state.id.lock().await;
     let download_item = download_input.parse_input(*id).await?;
     let mut downloads = state.downloads.lock().await;
-    downloads.insert(*id, download_item);
+    downloads.insert(*id, download_item.clone());
     url_id.insert(input_url, *id);
     *id += 1;
-    let mut downloads_vec: Vec<DownloadItem> = downloads.values().cloned().collect();
-    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
-    Ok(downloads_vec)
+    Ok(download_item)
 }
 
 #[tauri::command]
 async fn update_download(
     mut download: DownloadItem,
     state: State<'_, Downloads>,
-) -> Result<Vec<DownloadItem>, String> {
+) -> Result<DownloadItem, String> {
     let mut url_id = state.url_id.lock().await;
     let input_url = download.url().to_owned();
     if let Some(id) = url_id.get(&input_url) {
@@ -121,43 +119,34 @@ async fn update_download(
         download = download.parse_input().await?;
         url_id.insert(input_url, *download.id());
     }
-    downloads.insert(*download.id(), download);
-    let mut downloads_vec: Vec<DownloadItem> = downloads.values().cloned().collect();
-    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
-    Ok(downloads_vec)
+    downloads.insert(*download.id(), download.clone());
+    Ok(download)
 }
 
 #[tauri::command]
-async fn remove_download(
-    id: usize,
-    state: State<'_, Downloads>,
-) -> Result<Vec<DownloadItem>, String> {
+async fn remove_download(id: usize, state: State<'_, Downloads>) -> Result<(), String> {
     let mut downloads = state.downloads.lock().await;
     let mut url_id = state.url_id.lock().await;
     let download = downloads.remove(&id).ok_or(format!("Invalid id: {}", id))?;
     let url = download.url();
     url_id.remove(url);
-    let mut downloads_vec: Vec<DownloadItem> = downloads.values().cloned().collect();
-    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
-    Ok(downloads_vec)
+    Ok(())
 }
 
 #[tauri::command]
-async fn clear_downloads(state: State<'_, Downloads>) -> Result<Vec<DownloadItem>, String> {
+async fn clear_downloads(state: State<'_, Downloads>) -> Result<(), String> {
     state.downloads.lock().await.clear();
     state.url_id.lock().await.clear();
-    Ok(Vec::new())
+    Ok(())
 }
 
 #[tauri::command]
-async fn remove_completed(state: State<'_, Downloads>) -> Result<Vec<DownloadItem>, String> {
+async fn remove_completed(state: State<'_, Downloads>) -> Result<(), String> {
     let mut downloads = state.downloads.lock().await;
     let mut url_id = state.url_id.lock().await;
     downloads.retain(|_, d| !d.is_completed());
     url_id.retain(|_, id| downloads.contains_key(id));
-    let mut downloads_vec: Vec<DownloadItem> = downloads.values().cloned().collect();
-    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
-    Ok(downloads_vec)
+    Ok(())
 }
 
 async fn download_file(download: DownloadItem, client: Client) -> Result<(), String> {

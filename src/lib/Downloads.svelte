@@ -49,13 +49,7 @@
     if (download.status != DownloadStatus.Downloading) {
       downloading -= 1;
     }
-    downloads = downloads.map((d) => {
-      if (d.id === download.id) {
-        return download;
-      } else {
-        return d;
-      }
-    });
+    downloads = downloads.map((d) => (d.id === download.id ? download : d));
   }
 
   async function addDownload(
@@ -63,9 +57,10 @@
   ) {
     adding += 1;
     try {
-      downloads = await invoke("add_download", {
+      const download: DownloadOutput = await invoke("add_download", {
         downloadInput: event.detail.download,
       });
+      downloads = downloads.concat(download);
       event.detail.callback();
       await tick();
       scrollToBottom(downloadsList);
@@ -79,9 +74,10 @@
     event: CustomEvent<{ download: DownloadOutput }>
   ) {
     try {
-      downloads = await invoke("update_download", {
+      const download: DownloadOutput = await invoke("update_download", {
         download: event.detail.download,
       });
+      downloads = downloads.map((d) => (d.id === download.id ? download : d));
     } catch (error) {
       errorMessage = error as string;
     }
@@ -89,9 +85,10 @@
 
   async function removeDownload(event: CustomEvent<{ id: number }>) {
     try {
-      downloads = await invoke("remove_download", {
+      await invoke("remove_download", {
         id: event.detail.id,
       });
+      downloads = downloads.filter((d) => d.id !== event.detail.id);
     } catch (error) {
       errorMessage = error as string;
     }
@@ -99,7 +96,8 @@
 
   async function clearDownloads() {
     try {
-      downloads = await invoke("clear_downloads");
+      await invoke("clear_downloads");
+      downloads = [];
     } catch (e) {
       errorMessage = e as string;
     }
@@ -107,7 +105,10 @@
 
   async function removeCompleted() {
     try {
-      downloads = await invoke("remove_completed");
+      await invoke("remove_completed");
+      downloads = downloads.filter(
+        (d) => d.status !== DownloadStatus.Completed
+      );
     } catch (e) {
       errorMessage = e as string;
     }
