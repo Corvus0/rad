@@ -22,8 +22,8 @@ fn main() -> Result<(), tauri::Error> {
         .manage::<Downloads>(Downloads {
             downloads: Default::default(),
             queue: Mutex::new(input_tx),
-            url_id: Mutex::new(HashMap::new()),
-            id: Mutex::new(0),
+            url_id: Default::default(),
+            id: Default::default(),
         })
         .invoke_handler(tauri::generate_handler![
             get_downloads,
@@ -65,7 +65,7 @@ fn main() -> Result<(), tauri::Error> {
 }
 
 struct Downloads {
-    downloads: Mutex<Vec<DownloadItem>>,
+    downloads: Mutex<HashMap<usize, DownloadItem>>,
     queue: Mutex<mpsc::Sender<DownloadItem>>,
     url_id: Mutex<HashMap<String, usize>>,
     id: Mutex<usize>,
@@ -73,8 +73,10 @@ struct Downloads {
 
 #[tauri::command]
 async fn get_downloads(state: State<'_, Downloads>) -> Result<Vec<DownloadItem>, String> {
-    let downloads = state.downloads.lock().await.to_vec();
-    Ok(downloads)
+    let mut downloads_vec: Vec<DownloadItem> =
+        state.downloads.lock().await.values().cloned().collect();
+    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
+    Ok(downloads_vec)
 }
 
 #[tauri::command]
@@ -83,17 +85,19 @@ async fn add_download(
     state: State<'_, Downloads>,
 ) -> Result<Vec<DownloadItem>, String> {
     let mut url_id = state.url_id.lock().await;
-    let input_url = &download_input.url().to_owned();
-    if url_id.contains_key(input_url) {
-        return Err(format!("URL already added: {}", input_url));
+    let input_url = download_input.url().to_owned();
+    if url_id.contains_key(&input_url) {
+        return Err(format!("URL already added: {}", &input_url));
     }
     let mut id = state.id.lock().await;
     let download_item = download_input.parse_input(*id).await?;
     let mut downloads = state.downloads.lock().await;
-    downloads.push(download_item);
-    url_id.insert(input_url.clone(), *id);
+    downloads.insert(*id, download_item);
+    url_id.insert(input_url, *id);
     *id += 1;
-    Ok(downloads.to_vec())
+    let mut downloads_vec: Vec<DownloadItem> = downloads.values().cloned().collect();
+    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
+    Ok(downloads_vec)
 }
 
 #[tauri::command]
@@ -102,25 +106,25 @@ async fn update_download(
     state: State<'_, Downloads>,
 ) -> Result<Vec<DownloadItem>, String> {
     let mut url_id = state.url_id.lock().await;
-    let input_url = &download.url().to_owned();
-    if let Some(id) = url_id.get(input_url) {
+    let input_url = download.url().to_owned();
+    if let Some(id) = url_id.get(&input_url) {
         if id != download.id() {
             return Err(format!("URL already added: {}", input_url));
         }
     }
     let mut downloads = state.downloads.lock().await;
-    let index = downloads
-        .iter()
-        .position(|d| d.id() == download.id())
+    let old_download = downloads
+        .get(download.id())
         .ok_or(format!("Invalid id: {}", download.id()))?;
-    let old_download = &downloads[index];
-    if old_download.url() != *input_url {
+    if old_download.url() != input_url {
         url_id.remove(old_download.url());
         download = download.parse_input().await?;
-        url_id.insert(input_url.clone(), *download.id());
+        url_id.insert(input_url, *download.id());
     }
-    downloads[index] = download;
-    Ok(downloads.to_vec())
+    downloads.insert(*download.id(), download);
+    let mut downloads_vec: Vec<DownloadItem> = downloads.values().cloned().collect();
+    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
+    Ok(downloads_vec)
 }
 
 #[tauri::command]
@@ -130,14 +134,12 @@ async fn remove_download(
 ) -> Result<Vec<DownloadItem>, String> {
     let mut downloads = state.downloads.lock().await;
     let mut url_id = state.url_id.lock().await;
-    let index = downloads
-        .iter()
-        .position(|d| *d.id() == id)
-        .ok_or(format!("Invalid id: {}", id))?;
-    let download = downloads.remove(index);
+    let download = downloads.remove(&id).ok_or(format!("Invalid id: {}", id))?;
     let url = download.url();
     url_id.remove(url);
-    Ok(downloads.to_vec())
+    let mut downloads_vec: Vec<DownloadItem> = downloads.values().cloned().collect();
+    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
+    Ok(downloads_vec)
 }
 
 #[tauri::command]
@@ -151,19 +153,11 @@ async fn clear_downloads(state: State<'_, Downloads>) -> Result<Vec<DownloadItem
 async fn remove_completed(state: State<'_, Downloads>) -> Result<Vec<DownloadItem>, String> {
     let mut downloads = state.downloads.lock().await;
     let mut url_id = state.url_id.lock().await;
-    let filtered: Vec<DownloadItem> = downloads
-        .to_vec()
-        .into_iter()
-        .filter(|d| {
-            let completed = d.is_completed();
-            if completed {
-                url_id.remove(d.url());
-            }
-            !completed
-        })
-        .collect();
-    *downloads = filtered.to_vec();
-    Ok(filtered)
+    downloads.retain(|_, d| !d.is_completed());
+    url_id.retain(|_, id| downloads.contains_key(id));
+    let mut downloads_vec: Vec<DownloadItem> = downloads.values().cloned().collect();
+    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(b.id()));
+    Ok(downloads_vec)
 }
 
 async fn download_file(download: DownloadItem, client: Client) -> Result<(), String> {
@@ -174,7 +168,7 @@ async fn download_file(download: DownloadItem, client: Client) -> Result<(), Str
             download.op(),
             download.title()
         );
-        let invalid_chars = Regex::new(r#"[<>:"/\\\?\*]+"#)
+        let invalid_chars = Regex::new(r#"[<>:"/\\\?\*|]+"#)
             .map_err(|e| format!("Invalid regex pattern: {}", e.to_string()))?;
         let filename = invalid_chars.replace_all(&filename, "").to_string();
         if std::path::Path::new(&filename).exists() {
@@ -229,10 +223,13 @@ async fn queue_download(
 
 #[tauri::command]
 async fn queue_downloads(state: State<'_, Downloads>) -> Result<(), String> {
-    let downloads = state.downloads.lock().await.to_vec();
     let queue = state.queue.lock().await;
-    let handles: Vec<_> = downloads
-        .into_iter()
+    let handles: Vec<_> = state
+        .downloads
+        .lock()
+        .await
+        .values()
+        .cloned()
         .map(|d| {
             let queue = queue.clone();
             tokio::spawn(async move { queue.send(d).await.map_err(|e| e.to_string()) })
@@ -250,11 +247,9 @@ async fn update_downloads<R: tauri::Runtime>(
 ) -> Result<(), String> {
     if let Some(state) = manager.try_state::<Downloads>() {
         let mut downloads = state.downloads.lock().await;
-        let index = downloads
-            .iter()
-            .position(|d| d.id() == download.id())
+        downloads
+            .insert(*download.id(), download.clone())
             .ok_or(format!("Invalid id: {}", download.id()))?;
-        downloads[index] = download.clone();
         return manager
             .emit_all::<DownloadItem>("update_downloads", download)
             .map_err(|e| e.to_string());
