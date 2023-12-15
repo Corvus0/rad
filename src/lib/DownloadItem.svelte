@@ -54,17 +54,18 @@
   }
 </script>
 
-<div class="download-item">
+<div
+  class="download-item {download.status === DownloadStatus.Failed
+    ? 'failed'
+    : ''}"
+>
   <div class="download-item__lhs {editing ? 'editing' : ''}">
     {#if download.status === DownloadStatus.Completed}
       <Icon icon="material-symbols:download-done-rounded" />
     {:else if download.status === DownloadStatus.Downloading}
-      <Moon color="var(--color-primary)" size="1.2" unit="rem" />
+      <Moon size="1.2" unit="rem" />
     {:else if download.status === DownloadStatus.Failed}
-      <Icon
-        color="var(--color-error)"
-        icon="material-symbols:error-outline-rounded"
-      />
+      <Icon icon="material-symbols:error-outline-rounded" />
     {/if}
     {#if editing && download.status !== DownloadStatus.Downloading}
       <form
@@ -117,9 +118,7 @@
         >[{download.input.sub}] [{download.input.op}] {download.title}</a
       >
       {#if download.status === DownloadStatus.Failed}
-        <span class="failure-message">
-          {download.failure}
-        </span>
+        {download.failure}
       {/if}
     {/if}
   </div>
@@ -180,6 +179,11 @@
     background-color: var(--color-tertiary-container);
     padding: 0.5rem 1rem;
     border-radius: 1rem;
+
+    &.failed {
+      color: var(--color-on-error-container);
+      background-color: var(--color-error-container);
+    }
 
     &__lhs {
       display: flex;
@@ -242,17 +246,13 @@
     display: block;
   }
 
-  .failure-message {
-    color: var(--color-error);
-  }
-
   a {
     font-weight: 500;
-    color: var(--color-on-tertiary-container);
+    color: inherit;
     text-decoration: inherit;
   }
 
   a:hover {
-    color: var(--color-tertiary);
+    color: var(--color-outline);
   }
 </style>
