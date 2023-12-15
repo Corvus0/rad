@@ -230,6 +230,7 @@ async fn queue_downloads(state: State<'_, Downloads>) -> Result<(), String> {
         .await
         .values()
         .cloned()
+        .filter(|d| !d.is_completed())
         .map(|d| {
             let queue = queue.clone();
             tokio::spawn(async move { queue.send(d).await.map_err(|e| e.to_string()) })

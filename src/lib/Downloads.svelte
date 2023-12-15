@@ -136,7 +136,15 @@
 </script>
 
 <div class="downloads">
+  <h1><span class="reddit">Reddit</span> Audio Downloader</h1>
   <DownloadForm on:add={addDownload} />
+  <div class="status-wrapper {loading ? 'loading' : ''}">
+    {#if loading}
+      <div in:fly={{ y: 10, duration: 200 }} out:fly={{ y: 10, duration: 200 }}>
+        <BarLoader color="var(--color-primary)" size="4" unit="rem" />
+      </div>
+    {/if}
+  </div>
   <div class="failure-wrapper {errorMessage ? 'error' : ''}">
     {#if errorMessage}
       <button
@@ -149,13 +157,6 @@
       >
         {errorMessage}
       </button>
-    {/if}
-  </div>
-  <div class="status-wrapper {loading ? 'loading' : ''}">
-    {#if loading}
-      <div in:fly={{ y: 20, duration: 200 }} out:fly={{ y: 20, duration: 200 }}>
-        <BarLoader color="var(--color-primary)" size="4" unit="rem" />
-      </div>
     {/if}
   </div>
   <ul bind:this={downloadsList} class="downloads-list">
@@ -188,10 +189,22 @@
 </div>
 
 <style lang="scss">
+  .reddit {
+    color: var(--color-primary);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 2.4rem;
+    font-weight: 400;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
   .downloads {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     flex: 1;
     overflow: hidden;
     padding: 2rem 4rem;
@@ -209,6 +222,7 @@
     color: var(--color-on-surface);
     background-color: var(--color-surface-alt);
     border-radius: 1rem;
+    overflow: scroll;
   }
 
   .actions {
@@ -220,15 +234,15 @@
   }
 
   .failure-message {
-    margin: 0.5rem 0;
     color: var(--color-on-error-container);
     background-color: var(--color-error-container);
     padding: 0.5rem 1rem;
     border: none;
+    text-align: start;
   }
 
-  .failure-wrapper,
-  .status-wrapper {
+  .status-wrapper,
+  .failure-wrapper {
     height: 0;
     transition: height 0.2s;
   }
@@ -237,8 +251,12 @@
     height: 4rem;
   }
 
+  .status-wrapper {
+    margin-left: 1rem;
+  }
+
   .status-wrapper.loading {
-    height: 0.25rem;
+    height: 1rem;
   }
 
   li {
@@ -258,9 +276,9 @@
   }
 
   h2 {
-    font-size: 1.6rem;
+    font-size: 2rem;
     font-weight: 400;
-    line-height: 1.4;
-    letter-spacing: -0.5px;
+    line-height: 1.2;
+    letter-spacing: -0.8px;
   }
 </style>

@@ -63,7 +63,7 @@
     {#if download.status === DownloadStatus.Completed}
       <Icon icon="material-symbols:download-done-rounded" />
     {:else if download.status === DownloadStatus.Downloading}
-      <Moon size="1.2" unit="rem" />
+      <Moon color="var(--color-on-tertiary-container" size="1.2" unit="rem" />
     {:else if download.status === DownloadStatus.Failed}
       <Icon icon="material-symbols:error-outline-rounded" />
     {/if}
@@ -179,6 +179,7 @@
     background-color: var(--color-tertiary-container);
     padding: 0.5rem 1rem;
     border-radius: 1rem;
+    transition: all 0.2s;
 
     &.failed {
       color: var(--color-on-error-container);
@@ -187,7 +188,6 @@
 
     &__lhs {
       display: flex;
-      align-items: flex-end;
       gap: 8px;
       flex: 1;
       height: 24px;

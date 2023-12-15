@@ -120,17 +120,6 @@ body,
   margin: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-h1 {
-  text-align: center;
 }
 
 input,
@@ -155,6 +144,7 @@ button:hover,
 button:active,
 input:active {
   border-color: var(--color-on-background);
+  background-color: inherit;
 }
 
 button:hover,

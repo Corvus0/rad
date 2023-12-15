@@ -68,7 +68,7 @@
 
 <style lang="scss">
   .download-input {
-    margin: 1rem 1.5rem;
+    margin: 1rem 0;
     display: flex;
     gap: 0.5rem;
     justify-content: center;
@@ -92,6 +92,6 @@
 
   .form-button {
     line-height: 0rem;
-    padding: 0.5rem;
+    padding: 0.4rem;
   }
 </style>
