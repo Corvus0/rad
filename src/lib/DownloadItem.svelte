@@ -59,9 +59,12 @@
     {#if download.status === DownloadStatus.Completed}
       <Icon icon="material-symbols:download-done-rounded" />
     {:else if download.status === DownloadStatus.Downloading}
-      <Moon size="1.2" unit="rem" />
+      <Moon color="var(--color-primary)" size="1.2" unit="rem" />
     {:else if download.status === DownloadStatus.Failed}
-      <Icon color="#ba3329" icon="material-symbols:error-outline-rounded" />
+      <Icon
+        color="var(--color-error)"
+        icon="material-symbols:error-outline-rounded"
+      />
     {/if}
     {#if editing && download.status !== DownloadStatus.Downloading}
       <form
@@ -124,14 +127,14 @@
     <div class="item-actions">
       {#if editing}
         <button
-          class="download-item__button"
+          class="download-item__button download-item__button--save"
           type="submit"
           form={`download-item-${download.id}`}
           title="Save"
           ><Icon icon="material-symbols:save-outline-rounded" /></button
         >
         <button
-          class="download-item__button"
+          class="download-item__button download-item__button--cancel"
           type="button"
           title="Cancel"
           on:click={cancelEditing}
@@ -139,7 +142,7 @@
         >
       {:else}
         <button
-          class="download-item__button"
+          class="download-item__button download-item__button--edit"
           type="button"
           title="Edit"
           on:click={switchToEditing}
@@ -148,7 +151,7 @@
       {/if}
       {#if download.status === DownloadStatus.Initial && !editing}
         <button
-          class="download-item__button"
+          class="download-item__button download-item__button--download"
           type="button"
           title="Download"
           on:click={emitDownload}
@@ -156,14 +159,11 @@
         >
       {/if}
       <button
-        class="download-item__button"
+        class="download-item__button download-item__button--remove"
         type="button"
         title="Remove"
         on:click={emitRemove}
-        ><Icon
-          color="#ba3329"
-          icon="material-symbols:delete-outline-rounded"
-        /></button
+        ><Icon icon="material-symbols:delete-outline-rounded" /></button
       >
     </div>
   {/if}
@@ -173,9 +173,13 @@
   .download-item {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 8px;
     flex-wrap: wrap;
+    color: var(--color-on-tertiary-container);
+    background-color: var(--color-tertiary-container);
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
 
     &__lhs {
       display: flex;
@@ -222,6 +226,10 @@
     &__button {
       line-height: 0;
       padding: 0.5rem;
+
+      &--remove {
+        color: var(--color-error);
+      }
     }
   }
 
@@ -235,6 +243,16 @@
   }
 
   .failure-message {
-    color: #ba3329;
+    color: var(--color-error);
+  }
+
+  a {
+    font-weight: 500;
+    color: var(--color-on-tertiary-container);
+    text-decoration: inherit;
+  }
+
+  a:hover {
+    color: var(--color-tertiary);
   }
 </style>

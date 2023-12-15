@@ -9,10 +9,11 @@
 
 <style>
   .reddit {
-    color: #ff3e00;
+    color: var(--color-primary);
   }
 
   h1 {
+    margin-top: 2rem;
     font-size: 2rem;
     font-weight: 400;
     letter-spacing: -1px;

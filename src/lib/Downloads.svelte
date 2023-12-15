@@ -154,7 +154,7 @@
   <div class="status-wrapper {loading ? 'loading' : ''}">
     {#if loading}
       <div in:fly={{ y: 20, duration: 200 }} out:fly={{ y: 20, duration: 200 }}>
-        <BarLoader size="4" unit="rem" />
+        <BarLoader color="var(--color-primary)" size="4" unit="rem" />
       </div>
     {/if}
   </div>
@@ -177,8 +177,8 @@
     {/each}
   </ul>
   <div class="actions">
-    <button on:click={clearDownloads} disabled={loading}
-      ><span class="clear-downloads">Clear Downloads</span></button
+    <button class="clear-downloads" on:click={clearDownloads} disabled={loading}
+      >Clear Downloads</button
     >
     <button on:click={removeCompleted} disabled={loading}
       >Remove Completed</button
@@ -187,25 +187,28 @@
   </div>
 </div>
 
-<style>
+<style lang="scss">
   .downloads {
     display: flex;
     flex-direction: column;
     align-items: center;
     flex: 1;
     overflow: hidden;
+    padding: 2rem 4rem;
   }
 
   .downloads-list {
     display: flex;
     flex-direction: column;
     align-items: center;
-    overflow-x: hidden;
-    padding-left: 0;
+    padding: 1rem;
     margin-bottom: 1rem;
     flex: 1;
     gap: 8px;
     width: 100%;
+    color: var(--color-on-surface);
+    background-color: var(--color-surface-alt);
+    border-radius: 1rem;
   }
 
   .actions {
@@ -218,7 +221,10 @@
 
   .failure-message {
     margin: 0.5rem 0;
-    color: #ba3329;
+    color: var(--color-on-error-container);
+    background-color: var(--color-error-container);
+    padding: 0.5rem 1rem;
+    border: none;
   }
 
   .failure-wrapper,
@@ -245,13 +251,10 @@
       cursor: not-allowed;
       border-color: transparent;
     }
-    &:hover {
-      background-color: #0f0f0f98;
-    }
   }
 
   .clear-downloads {
-    color: #ba3329;
+    color: var(--color-error);
   }
 
   h2 {
