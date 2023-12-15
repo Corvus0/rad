@@ -124,6 +124,15 @@
   </div>
   {#if download.status !== DownloadStatus.Downloading}
     <div class="item-actions">
+      {#if download.status === DownloadStatus.Initial && !editing}
+        <button
+          class="download-item__button download-item__button--download"
+          type="button"
+          title="Download"
+          on:click={emitDownload}
+          ><Icon icon="material-symbols:download-rounded" /></button
+        >
+      {/if}
       {#if editing}
         <button
           class="download-item__button download-item__button--save"
@@ -146,15 +155,6 @@
           title="Edit"
           on:click={switchToEditing}
           ><Icon icon="material-symbols:edit" /></button
-        >
-      {/if}
-      {#if download.status === DownloadStatus.Initial && !editing}
-        <button
-          class="download-item__button download-item__button--download"
-          type="button"
-          title="Download"
-          on:click={emitDownload}
-          ><Icon icon="material-symbols:download-rounded" /></button
         >
       {/if}
       <button
@@ -190,7 +190,7 @@
       display: flex;
       gap: 8px;
       flex: 1;
-      height: 24px;
+      height: 3rem;
       transition: height 0.2s;
 
       &.editing {
@@ -230,6 +230,12 @@
     &__button {
       line-height: 0;
       padding: 0.5rem;
+      background-color: inherit;
+      border-color: transparent;
+
+      &:hover {
+        border: 1px solid var(--color-on-tertiary-container);
+      }
 
       &--remove {
         color: var(--color-error);
@@ -250,6 +256,7 @@
     font-weight: 500;
     color: inherit;
     text-decoration: inherit;
+    transition: color 0.2s;
   }
 
   a:hover {

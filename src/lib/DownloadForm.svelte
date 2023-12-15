@@ -92,6 +92,12 @@
 
   .form-button {
     line-height: 0rem;
-    padding: 0.4rem;
+    padding: 0.3rem;
+    border: none;
+    box-shadow: none;
+
+    &:hover {
+      color: var(--color-tertiary);
+    }
   }
 </style>

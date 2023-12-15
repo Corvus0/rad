@@ -174,17 +174,21 @@
         />
       </li>
     {:else}
-      <h2>No downloads added yet...</h2>
+      <h2 in:fly={{ x: -100 }} out:fly={{ x: 100 }}>
+        No downloads added yet...
+      </h2>
     {/each}
   </ul>
   <div class="actions">
-    <button class="clear-downloads" on:click={clearDownloads} disabled={loading}
-      >Clear Downloads</button
+    <button class="download-all" on:click={downloadAll} disabled={loading}
+      >Download All</button
     >
     <button on:click={removeCompleted} disabled={loading}
       >Remove Completed</button
     >
-    <button on:click={downloadAll} disabled={loading}>Download All</button>
+    <button class="clear-downloads" on:click={clearDownloads} disabled={loading}
+      >Clear Downloads</button
+    >
   </div>
 </div>
 
@@ -195,9 +199,9 @@
 
   h1 {
     margin: 0;
-    font-size: 2.4rem;
+    font-size: 2.8rem;
     font-weight: 400;
-    letter-spacing: -1px;
+    letter-spacing: -1.6px;
     line-height: 1;
   }
 
@@ -271,6 +275,12 @@
     }
   }
 
+  .download-all {
+    color: var(--color-on-tertiary-container);
+    background-color: var(--color-tertiary-container);
+    border: none;
+  }
+
   .clear-downloads {
     color: var(--color-error);
   }
@@ -280,5 +290,6 @@
     font-weight: 400;
     line-height: 1.2;
     letter-spacing: -0.8px;
+    margin-top: 1rem;
   }
 </style>

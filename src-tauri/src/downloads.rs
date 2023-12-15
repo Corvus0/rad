@@ -32,36 +32,39 @@ impl DownloadInput {
     }
 
     pub async fn parse_input(self, id: usize) -> Result<DownloadItem, String> {
-        let raw_html = match reqwest::get(&self.url).await {
-            Ok(raw) => raw,
-            Err(_) => return Err(format!("Failed to fetch page: {}", &self.url)),
-        };
-        let html = match raw_html.text().await {
-            Ok(html) => html,
-            Err(_) => return Err(format!("Failed to parse html to text for: {}", &self.url)),
-        };
-        let audio_url_re =
-            match Regex::new(r#"(https:\/\/media.soundgasm.net\/sounds\/[^\r\n\t\f\v"]+)"#) {
-                Ok(re) => re,
-                Err(e) => return Err(e.to_string()),
-            };
-        let caps = match audio_url_re.captures(&html) {
-            Some(caps) => caps,
-            None => return Err(format!("Failed to find valid audio url: {}", &self.url)),
-        };
-        let audio_url = match caps.get(0) {
-            Some(url) => url.as_str().to_owned(),
-            None => return Err(format!("Page contains no valid audio url: {}", &self.url)),
-        };
+        let response = reqwest::get(&self.url)
+            .await
+            .map_err(|e| format!("Failed to fetch page {}: {}", &self.url, e.to_string()))?;
+        let html = response.text().await.map_err(|e| {
+            format!(
+                "Failed to parse html to text {}: {}",
+                &self.url,
+                e.to_string()
+            )
+        })?;
+        let audio_url = Regex::new(r#"(https:\/\/media.soundgasm.net\/sounds\/[^\r\n\t\f\v"]+)"#)
+            .map_err(|e| e.to_string())
+            .and_then(|re| {
+                re.captures(&html)
+                    .ok_or(format!("Failed to find valid audio url: {}", &self.url))
+            })
+            .and_then(|caps| {
+                caps.get(0)
+                    .ok_or(format!("Page contains no valid audio url: {}", &self.url))
+            })?
+            .as_str()
+            .to_owned();
         let document = Html::parse_document(&html);
-        let title_selector = match Selector::parse("div.jp-title") {
-            Ok(selector) => selector,
-            Err(e) => return Err(e.to_string()),
-        };
-        let title: String = match document.select(&title_selector).next() {
-            Some(title) => title.text().collect(),
-            None => return Err(format!("Page does not contain title: {}", &self.url)),
-        };
+        let title = Selector::parse("div.jp-title")
+            .map_err(|e| e.to_string())
+            .and_then(|selector| {
+                document
+                    .select(&selector)
+                    .next()
+                    .ok_or(format!("Page does not contain title: {}", &self.url))
+            })?
+            .text()
+            .collect();
         Ok(DownloadItem::new(self, audio_url, title, id))
     }
 }

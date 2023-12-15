@@ -174,37 +174,34 @@ async fn download_file(download: DownloadItem, client: Client) -> Result<(), Str
         if std::path::Path::new(&filename).exists() {
             return Err("File already exists".to_owned());
         }
-        let mut file = match File::create(&filename).await {
-            Ok(file) => file,
-            Err(e) => return Err(format!("Failed to create file: {}", e.to_string())),
-        };
-        let data = match client.get(download.audio()).send().await {
-            Ok(data) => data,
-            Err(e) => return Err(format!("Failed to download: {}", e.to_string())),
-        };
-        let bytes = match data.bytes().await {
-            Ok(bytes) => bytes,
-            Err(e) => return Err(format!("Failed to parse to bytes: {}", e.to_string())),
-        };
-        match file.write_all(&bytes).await {
-            Ok(_) => (),
-            Err(e) => return Err(format!("Failed to write data to file: {}", e.to_string())),
-        };
-        let mut tags = Tag::read_from_path(&filename)
-            .map_err(|e| format!("Failed to read tags from file: {}", e.to_string()))?;
-        tags.set_artist(download.op());
-        tags.set_album(download.op());
-        tags.set_album_artist(download.op());
-        tags.set_title(download.title());
-        tags.set_genre(download.sub());
-        tags.write_to_path(&filename)
-            .map_err(|e| format!("Failed to write tags to file: {}", e.to_string()))?;
-        Ok(())
+        let mut file = File::create(&filename)
+            .await
+            .map_err(|e| format!("Failed to create file: {}", e.to_string()))?;
+        let data = client
+            .get(download.audio())
+            .send()
+            .await
+            .map_err(|e| format!("Failed to download: {}", e.to_string()))?;
+        let bytes = data
+            .bytes()
+            .await
+            .map_err(|e| format!("Failed to parse to bytes: {}", e.to_string()))?;
+        file.write_all(&bytes)
+            .await
+            .map_err(|e| format!("Failed to write data to file: {}", e.to_string()))?;
+        Tag::read_from_path(&filename)
+            .map_err(|e| format!("Failed to read tags from file: {}", e.to_string()))
+            .and_then(|mut tags| {
+                tags.set_artist(download.op());
+                tags.set_album(download.op());
+                tags.set_album_artist(download.op());
+                tags.set_title(download.title());
+                tags.set_genre(download.sub());
+                tags.write_to_path(&filename)
+                    .map_err(|e| format!("Failed to write tags to file: {}", e.to_string()))
+            })
     });
-    match handle.await {
-        Ok(res) => res,
-        Err(e) => Err(e.to_string()),
-    }
+    handle.await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
