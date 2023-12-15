@@ -292,5 +292,6 @@
     line-height: 1.2;
     letter-spacing: -0.8px;
     margin-top: 1rem;
+    position: absolute;
   }
 </style>
