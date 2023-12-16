@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import { fly } from "svelte/transition";
   import Icon from "@iconify/svelte";
   import { Moon } from "svelte-loading-spinners";
 
@@ -55,11 +56,12 @@
 </script>
 
 <div
-  class="download-item {download.status === DownloadStatus.Failed
+  class="download-item {editing ? 'editing' : ''} {download.status ===
+  DownloadStatus.Failed
     ? 'failed'
     : ''}"
 >
-  <div class="download-item__lhs {editing ? 'editing' : ''}">
+  <div class="download-item__lhs">
     {#if download.status === DownloadStatus.Completed}
       <Icon icon="material-symbols:download-done-rounded" />
     {:else if download.status === DownloadStatus.Downloading}
@@ -69,11 +71,12 @@
     {/if}
     {#if editing && download.status !== DownloadStatus.Downloading}
       <form
+        transition:fly={{ y: -100 }}
         class="download-item__form"
         id={`download-item-${download.id}`}
         on:submit|preventDefault={emitEdit}
       >
-        <label>
+        <label class="download-url">
           <span class="label-text"> URL </span>
           <input
             type="text"
@@ -83,7 +86,16 @@
             autocomplete="off"
           />
         </label>
-        <label>
+        <label class="download-op">
+          <span class="label-text"> Original Poster </span>
+          <input
+            type="text"
+            placeholder="Original Poster"
+            bind:value={fields.op}
+            required
+          />
+        </label>
+        <label class="download-sub">
           <span class="label-text"> Subreddit </span>
           <input
             list="subreddits"
@@ -93,16 +105,7 @@
             required
           />
         </label>
-        <label>
-          <span class="label-text"> Original Poster </span>
-          <input
-            type="text"
-            placeholder="Original Poster"
-            bind:value={fields.op}
-            required
-          />
-        </label>
-        <label>
+        <label class="download-title">
           <span class="label-text"> Title </span>
           <input
             type="text"
@@ -114,7 +117,11 @@
         </label>
       </form>
     {:else}
-      <a href={download.input.url} target="_blank"
+      <a
+        href={download.input.url}
+        class="download-item__link"
+        target="_blank"
+        transition:fly={{ y: 100 }}
         >[{download.input.sub}] [{download.input.op}] {download.title}</a
       >
       {#if download.status === DownloadStatus.Failed}
@@ -180,6 +187,11 @@
     padding: 0.5rem 1rem;
     border-radius: 1rem;
     transition: all 0.2s;
+    height: 4rem;
+
+    &.editing {
+      height: 5rem;
+    }
 
     &.failed {
       color: var(--color-on-error-container);
@@ -190,11 +202,18 @@
       display: flex;
       gap: 8px;
       flex: 1;
-      height: 3rem;
-      transition: height 0.2s;
+      position: relative;
+    }
 
-      &.editing {
-        height: 4rem;
+    &__link {
+      position: absolute;
+      font-weight: 500;
+      color: inherit;
+      text-decoration: inherit;
+      transition: color 0.2s;
+
+      &:hover {
+        color: var(--color-outline);
       }
     }
 
@@ -203,7 +222,7 @@
       align-items: flex-end;
       gap: 8px;
       flex-wrap: wrap;
-      flex: 1;
+      width: 100%;
 
       & input,
       & label {
@@ -211,16 +230,12 @@
         font-weight: 500;
       }
 
-      & label {
-        flex: 1;
-      }
-
       & input {
         width: 100%;
       }
 
       & .label-text {
-        margin-left: 1rem;
+        margin-left: 0.8rem;
         margin-bottom: 0.2rem;
         display: block;
         text-align: start;
@@ -252,14 +267,13 @@
     display: block;
   }
 
-  a {
-    font-weight: 500;
-    color: inherit;
-    text-decoration: inherit;
-    transition: color 0.2s;
+  .download-url,
+  .download-op,
+  .download-title {
+    flex: 2;
   }
 
-  a:hover {
-    color: var(--color-outline);
+  .download-sub {
+    flex: 1;
   }
 </style>

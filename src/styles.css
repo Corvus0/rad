@@ -72,6 +72,7 @@ body,
 #app,
 .container {
   height: 100%;
+  overflow: hidden;
 }
 
 :root {
@@ -131,7 +132,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   color: inherit;
-  background-color: var(--color-background);
+  background-color: var(--color-surface);
   transition: all 0.2s;
 }
 
@@ -143,7 +144,7 @@ input:hover,
 button:hover,
 button:active,
 input:active {
-  border-color: var(--color-on-background);
+  border-color: var(--color-on-surface);
   background-color: inherit;
 }
 
@@ -188,6 +189,10 @@ button {
     --color-on-surface: #ede0dd;
     --color-surface-variant: #53433f;
     --color-on-surface-variant: #d8c2bc;
+  }
+  
+  input {
+    color-scheme: dark;
   }
 }
 

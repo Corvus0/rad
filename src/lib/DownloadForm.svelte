@@ -45,24 +45,26 @@
         autocomplete="on"
       />
     </div>
-    <div class="form-group">
-      <label for="input-sub">Subreddit</label>
-      <input
-        list="subreddits"
-        id="input-sub"
-        type="text"
-        placeholder="Subreddit"
-        bind:value={sub}
-        required
-      />
-      <datalist id="subreddits">
-        <option value="GWA"></option>
-        <option value="PTA"></option>
-      </datalist>
+    <div class="last-input">
+      <div class="form-group">
+        <label for="input-sub">Subreddit</label>
+        <input
+          list="subreddits"
+          id="input-sub"
+          type="text"
+          placeholder="Subreddit"
+          bind:value={sub}
+          required
+        />
+        <datalist id="subreddits">
+          <option value="GWA"></option>
+          <option value="PTA"></option>
+        </datalist>
+      </div>
+      <button title="Add download" type="submit" class="form-button"
+        ><Icon icon="material-symbols:add-circle-outline-rounded" /></button
+      >
     </div>
-    <button title="Add download" type="submit" class="form-button"
-      ><Icon icon="material-symbols:add-circle-outline-rounded" /></button
-    >
   </form>
 </div>
 
@@ -71,8 +73,6 @@
     margin: 1rem 0;
     display: flex;
     gap: 0.5rem;
-    justify-content: center;
-    align-items: flex-end;
     flex-wrap: wrap;
 
     & input,
@@ -82,7 +82,7 @@
     }
 
     & label {
-      margin-left: 1rem;
+      margin-left: 0.8rem;
       margin-bottom: 0.2rem;
       display: block;
       text-align: start;
@@ -99,5 +99,20 @@
     &:hover {
       color: var(--color-tertiary);
     }
+  }
+
+  .last-input {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+
+  #input-url,
+  #input-op {
+    width: 20rem;
+  }
+
+  #input-sub {
+    width: 10rem;
   }
 </style>

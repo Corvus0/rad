@@ -138,29 +138,24 @@
 
 <div class="downloads">
   <h1><span class="reddit">Reddit</span> Audio Downloader</h1>
-  <div class="form-container">
-    <DownloadForm on:add={addDownload} />
+  <DownloadForm on:add={addDownload} />
+  <div class="progress-wrapper {loading ? 'loading' : ''}">
     {#if loading}
-      <div
-        class="progress-bar"
-        in:fly={{ y: 10, duration: 200 }}
-        out:fly={{ y: 10, duration: 200 }}
-      >
+      <div class="progress-bar" transition:fly={{ y: -20 }}>
         <span>
           {adding > 0 ? "Adding" : "Downloading"}
           {downloading > 0 ? `${downloads.length - downloading} of ` : ""}
           {adding > 0 ? adding : downloading}
           {adding + downloading === 1 ? "link" : "links"}...
         </span>
-        <BarLoader color="var(--color-primary)" size="4" unit="rem" />
+        <BarLoader color="var(--color-primary)" size="5" unit="rem" />
       </div>
     {/if}
   </div>
   <div class="error-wrapper {errorMessage ? 'error' : ''}">
     {#if errorMessage}
       <button
-        in:fly={{ x: -100 }}
-        out:fly={{ x: 100 }}
+        transition:fly={{ y: -50 }}
         type="button"
         on:click={clearError}
         class="failure-message"
@@ -175,7 +170,7 @@
       <li
         in:fly={{ x: -100 }}
         out:fly={{ x: 100 }}
-        animate:flip={{ duration: 200 }}
+        animate:flip={{ duration: 400 }}
       >
         <DownloadItem
           {download}
@@ -204,18 +199,6 @@
 </div>
 
 <style lang="scss">
-  .reddit {
-    color: var(--color-primary);
-  }
-
-  h1 {
-    margin: 0;
-    font-size: 2.8rem;
-    font-weight: 400;
-    letter-spacing: -1.6px;
-    line-height: 1;
-  }
-
   .downloads {
     display: flex;
     flex-direction: column;
@@ -223,6 +206,7 @@
     flex: 1;
     overflow: hidden;
     padding: 2rem 4rem;
+    min-width: 400px;
   }
 
   .downloads-list {
@@ -241,41 +225,45 @@
     position: relative;
   }
 
+  .list-placeholder {
+    position: absolute;
+  }
+
   .actions {
     display: flex;
     gap: 0.5rem;
-    justify-content: center;
-    align-items: center;
     flex-wrap: wrap;
   }
 
-  .form-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+  .progress-wrapper {
+    max-height: 0;
+    transition: max-height 0.4s ease-in-out;
+
+    &.loading {
+      max-height: 100%;
+    }
   }
 
   .progress-bar {
     color: var(--color-on-tertiary-container);
     background-color: var(--color-tertiary-container);
     padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
     border-radius: 1rem;
 
     & span {
       display: inline-block;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.1rem;
     }
   }
 
   .error-wrapper {
     max-height: 0;
-    transition: max-height 0.2s;
-    z-index: 1;
-  }
+    transition: max-height 0.4s ease-in-out;
 
-  .error-wrapper.error {
-    max-height: 100%;
+    &.error {
+      max-height: 100%;
+    }
   }
 
   .failure-message {
@@ -309,15 +297,23 @@
     color: var(--color-error);
   }
 
+  .reddit {
+    color: var(--color-primary);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 2.8rem;
+    font-weight: 400;
+    letter-spacing: -1.6px;
+    line-height: 1;
+  }
+
   h2 {
     font-size: 2rem;
     font-weight: 400;
     line-height: 1.2;
     letter-spacing: -0.8px;
     margin-left: 1rem;
-  }
-
-  .list-placeholder {
-    position: absolute;
   }
 </style>
