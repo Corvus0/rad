@@ -71,7 +71,7 @@
     {/if}
     {#if editing && download.status !== DownloadStatus.Downloading}
       <form
-        transition:fly={{ y: -100 }}
+        transition:fly={{ y: -70 }}
         class="download-item__form"
         id={`download-item-${download.id}`}
         on:submit|preventDefault={emitEdit}
@@ -121,7 +121,7 @@
         href={download.input.url}
         class="download-item__link"
         target="_blank"
-        transition:fly={{ y: 100 }}
+        transition:fly={{ y: 70 }}
         >[{download.input.sub}] [{download.input.op}] {download.title}</a
       >
       {#if download.status === DownloadStatus.Failed}
@@ -188,6 +188,7 @@
     border-radius: 1rem;
     transition: all 0.2s;
     height: 4rem;
+    overflow: hidden;
 
     &.editing {
       height: 5rem;
