@@ -23,7 +23,7 @@
 
   function emitEdit() {
     dispatch("save", {
-      download: { ...fields, status: DownloadStatus.Initial },
+      download: { ...fields, status: DownloadStatus.Initial, failure: null },
       callback: () => {
         editing = false;
       },
@@ -105,16 +105,14 @@
         </label>
       </form>
     {:else}
-      <a
-        href={download.input.url}
-        class="download-item__link"
-        target="_blank"
-        transition:fly={{ y: 70 }}
-        >[{download.input.sub}] [{download.input.op}] {download.title}</a
-      >
-      {#if download.status === DownloadStatus.Failed}
-        {download.failure}
-      {/if}
+      <span class="download-item__text" transition:fly={{ y: 70 }}>
+        <a href={download.input.url} class="download-item__link" target="_blank"
+          >[{download.input.sub}] [{download.input.op}] {download.title}</a
+        >
+        {#if download.status === DownloadStatus.Failed}
+          {download.failure}
+        {/if}
+      </span>
     {/if}
   </div>
   {#if download.status !== DownloadStatus.Downloading}
@@ -194,8 +192,11 @@
       position: relative;
     }
 
-    &__link {
+    &__text {
       position: absolute;
+    }
+
+    &__link {
       font-weight: 500;
       color: inherit;
       text-decoration: inherit;
