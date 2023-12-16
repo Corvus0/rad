@@ -138,19 +138,29 @@
 
 <div class="downloads">
   <h1><span class="reddit">Reddit</span> Audio Downloader</h1>
-  <DownloadForm on:add={addDownload} />
-  <div class="status-wrapper {loading ? 'loading' : ''}">
+  <div class="form-container">
+    <DownloadForm on:add={addDownload} />
     {#if loading}
-      <div in:fly={{ y: 10, duration: 200 }} out:fly={{ y: 10, duration: 200 }}>
+      <div
+        class="progress-bar"
+        in:fly={{ y: 10, duration: 200 }}
+        out:fly={{ y: 10, duration: 200 }}
+      >
+        <span>
+          {adding > 0 ? "Adding" : "Downloading"}
+          {downloading > 0 ? `${downloads.length - downloading} of ` : ""}
+          {adding > 0 ? adding : downloading}
+          {adding + downloading === 1 ? "link" : "links"}...
+        </span>
         <BarLoader color="var(--color-primary)" size="4" unit="rem" />
       </div>
     {/if}
   </div>
-  <div class="failure-wrapper {errorMessage ? 'error' : ''}">
+  <div class="error-wrapper {errorMessage ? 'error' : ''}">
     {#if errorMessage}
       <button
-        in:fly={{ y: 100 }}
-        out:fly={{ y: 100 }}
+        in:fly={{ x: -100 }}
+        out:fly={{ x: 100 }}
         type="button"
         on:click={clearError}
         class="failure-message"
@@ -175,9 +185,9 @@
         />
       </li>
     {:else}
-      <h2 in:fly={{ x: -100 }} out:fly={{ x: 100 }}>
-        No downloads added yet...
-      </h2>
+      <li class="list-placeholder" in:fly={{ x: -100 }} out:fly={{ x: 100 }}>
+        <h2>No downloads added yet...</h2>
+      </li>
     {/each}
   </ul>
   <div class="actions">
@@ -228,6 +238,7 @@
     background-color: var(--color-surface-alt);
     border-radius: 1rem;
     overflow: scroll;
+    position: relative;
   }
 
   .actions {
@@ -238,30 +249,42 @@
     flex-wrap: wrap;
   }
 
+  .form-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .progress-bar {
+    color: var(--color-on-tertiary-container);
+    background-color: var(--color-tertiary-container);
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+
+    & span {
+      display: inline-block;
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  .error-wrapper {
+    max-height: 0;
+    transition: max-height 0.2s;
+    z-index: 1;
+  }
+
+  .error-wrapper.error {
+    max-height: 100%;
+  }
+
   .failure-message {
     color: var(--color-on-error-container);
     background-color: var(--color-error-container);
     padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
     border: none;
     text-align: start;
-  }
-
-  .status-wrapper,
-  .failure-wrapper {
-    height: 0;
-    transition: height 0.2s;
-  }
-
-  .failure-wrapper.error {
-    height: 4rem;
-  }
-
-  .status-wrapper {
-    margin-left: 1rem;
-  }
-
-  .status-wrapper.loading {
-    height: 1rem;
   }
 
   li {
@@ -291,7 +314,10 @@
     font-weight: 400;
     line-height: 1.2;
     letter-spacing: -0.8px;
-    margin-top: 1rem;
+    margin-left: 1rem;
+  }
+
+  .list-placeholder {
     position: absolute;
   }
 </style>
