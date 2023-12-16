@@ -11,18 +11,9 @@
   const dispatch = createEventDispatcher();
 
   let editing = false;
-  let fields = {
-    url: download.input.url,
-    op: download.input.op,
-    sub: download.input.sub,
-    title: download.title,
-  };
+  let fields: DownloadOutput = { ...download };
 
   function switchToEditing() {
-    fields.url = download.input.url;
-    fields.op = download.input.op;
-    fields.sub = download.input.sub;
-    fields.title = download.title;
     editing = true;
   }
 
@@ -31,14 +22,11 @@
   }
 
   function emitEdit() {
-    editing = false;
-    download.input.url = fields.url;
-    download.input.op = fields.op;
-    download.input.sub = fields.sub;
-    download.title = fields.title;
-    download.status = DownloadStatus.Initial;
     dispatch("save", {
-      download,
+      download: { ...fields, status: DownloadStatus.Initial },
+      callback: () => {
+        editing = false;
+      },
     });
   }
 
@@ -61,14 +49,14 @@
     ? 'failed'
     : ''}"
 >
+  {#if download.status === DownloadStatus.Completed}
+    <Icon icon="material-symbols:download-done-rounded" />
+  {:else if download.status === DownloadStatus.Downloading}
+    <Moon color="var(--color-on-tertiary-container" size="1.2" unit="rem" />
+  {:else if download.status === DownloadStatus.Failed}
+    <Icon icon="material-symbols:error-outline-rounded" />
+  {/if}
   <div class="download-item__lhs">
-    {#if download.status === DownloadStatus.Completed}
-      <Icon icon="material-symbols:download-done-rounded" />
-    {:else if download.status === DownloadStatus.Downloading}
-      <Moon color="var(--color-on-tertiary-container" size="1.2" unit="rem" />
-    {:else if download.status === DownloadStatus.Failed}
-      <Icon icon="material-symbols:error-outline-rounded" />
-    {/if}
     {#if editing && download.status !== DownloadStatus.Downloading}
       <form
         transition:fly={{ y: -70 }}
@@ -81,7 +69,7 @@
           <input
             type="text"
             placeholder="URL"
-            bind:value={fields.url}
+            bind:value={fields.input.url}
             required
             autocomplete="off"
           />
@@ -91,7 +79,7 @@
           <input
             type="text"
             placeholder="Original Poster"
-            bind:value={fields.op}
+            bind:value={fields.input.op}
             required
           />
         </label>
@@ -101,7 +89,7 @@
             list="subreddits"
             type="text"
             placeholder="Subreddit"
-            bind:value={fields.sub}
+            bind:value={fields.input.sub}
             required
           />
         </label>

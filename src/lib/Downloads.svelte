@@ -71,12 +71,13 @@
   }
 
   async function saveDownloadEdit(
-    event: CustomEvent<{ download: DownloadOutput }>
+    event: CustomEvent<{ download: DownloadOutput; callback: () => void }>
   ) {
     try {
       const download: DownloadOutput = await invoke("update_download", {
         download: event.detail.download,
       });
+      event.detail.callback();
       downloads = downloads.map((d) => (d.id === download.id ? download : d));
     } catch (error) {
       errorMessage = error as string;
@@ -130,6 +131,7 @@
   async function downloadAll() {
     try {
       await invoke("queue_downloads");
+      downloading = downloads.length;
     } catch (e) {
       errorMessage = e as string;
     }
