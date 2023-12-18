@@ -17,5 +17,5 @@ export interface DownloadOutput {
   audio: string;
   title: string;
   status: DownloadStatus;
-  failure?: string;
+  failure: string | null;
 }

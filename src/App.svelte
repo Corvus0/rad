@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Downloads from "./lib/Downloads.svelte";
+  import Downloads from "./lib/Downloads/Downloads.svelte";
 </script>
 
 <main class="container">

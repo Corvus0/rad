@@ -5,6 +5,7 @@
   import { Moon } from "svelte-loading-spinners";
 
   import { type DownloadOutput, DownloadStatus } from "./Downloads";
+  import AudioPlayer from "../AudioPlayer/AudioPlayer.svelte";
 
   export let download: DownloadOutput;
 
@@ -44,9 +45,9 @@
 </script>
 
 <div
-  class="download-item {editing ? 'editing' : ''} {download.status ===
+  class="download-item{editing ? ' editing' : ''}{download.status ===
   DownloadStatus.Failed
-    ? 'failed'
+    ? ' failed'
     : ''}"
 >
   {#if download.status === DownloadStatus.Completed}
@@ -105,14 +106,15 @@
         </label>
       </form>
     {:else}
-      <span class="download-item__text" transition:fly={{ y: 70 }}>
-        <a href={download.input.url} class="download-item__link" target="_blank"
-          >[{download.input.sub}] [{download.input.op}] {download.title}</a
-        >
-        {#if download.status === DownloadStatus.Failed}
-          {download.failure}
-        {/if}
-      </span>
+      <div class="download-item__player" transition:fly={{ y: 70 }}>
+        <AudioPlayer
+          src={download.audio}
+          title={download.title}
+          artist={download.input.op}
+          sub={download.input.sub}
+          error={download.failure}
+        />
+      </div>
     {/if}
   </div>
   {#if download.status !== DownloadStatus.Downloading}
@@ -173,7 +175,7 @@
     padding: 0.5rem 1rem;
     border-radius: 1rem;
     transition: all 0.2s;
-    height: 4rem;
+    height: 3.5rem;
     overflow: hidden;
 
     &.editing {
@@ -192,19 +194,9 @@
       position: relative;
     }
 
-    &__text {
+    &__player {
       position: absolute;
-    }
-
-    &__link {
-      font-weight: 500;
-      color: inherit;
-      text-decoration: inherit;
-      transition: color 0.2s;
-
-      &:hover {
-        color: var(--color-outline);
-      }
+      width: 100%;
     }
 
     &__form {

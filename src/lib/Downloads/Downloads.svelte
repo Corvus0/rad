@@ -141,7 +141,7 @@
 <div class="downloads">
   <h1><span class="reddit">Reddit</span> Audio Downloader</h1>
   <DownloadForm on:add={addDownload} />
-  <div class="progress-wrapper {loading ? 'loading' : ''}">
+  <div class="progress-wrapper{loading ? ' loading' : ''}">
     {#if loading}
       <div class="progress-bar" transition:fly={{ y: -20 }}>
         <span>
@@ -154,7 +154,7 @@
       </div>
     {/if}
   </div>
-  <div class="error-wrapper {errorMessage ? 'error' : ''}">
+  <div class="error-wrapper{errorMessage ? ' error' : ''}">
     {#if errorMessage}
       <button
         transition:fly={{ y: -50 }}
