@@ -104,7 +104,7 @@
     }
   }
 
-  async function removeCompleted() {
+  async function removeDownloaded() {
     try {
       await invoke("remove_completed");
       downloads = downloads.filter(
@@ -191,8 +191,8 @@
     <button class="download-all" on:click={downloadAll} disabled={loading}
       >Download All</button
     >
-    <button on:click={removeCompleted} disabled={loading}
-      >Remove Completed</button
+    <button on:click={removeDownloaded} disabled={loading}
+      >Remove Downloaded</button
     >
     <button class="clear-downloads" on:click={clearDownloads} disabled={loading}
       >Clear Downloads</button
