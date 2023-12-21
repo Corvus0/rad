@@ -16,8 +16,9 @@ use tokio::{
 };
 
 fn main() -> Result<(), tauri::Error> {
-    let (input_tx, input_rx) = mpsc::channel(12);
-    let (output_tx, mut output_rx) = mpsc::channel(12);
+    const BUFFER_SIZE: usize = 12;
+    let (input_tx, input_rx) = mpsc::channel(BUFFER_SIZE);
+    let (output_tx, mut output_rx) = mpsc::channel(BUFFER_SIZE);
     tauri::Builder::default()
         .manage::<Downloads>(Downloads {
             downloads: Default::default(),
@@ -40,23 +41,21 @@ fn main() -> Result<(), tauri::Error> {
             let app_handle = app.handle();
             let client = Client::new();
             tauri::async_runtime::spawn(async move {
-                loop {
-                    if let Some(mut download) = output_rx.recv().await {
-                        let client = client.clone();
-                        let app_handle = app_handle.clone();
-                        tokio::spawn(async move {
-                            download.set_status(DownloadStatus::Downloading);
-                            update_downloads(download.clone(), &app_handle).await?;
-                            if let Err(e) = download_file(download.clone(), client).await {
-                                download.set_status(DownloadStatus::Failed);
-                                download.set_failure(e);
-                            } else {
-                                download.set_status(DownloadStatus::Completed);
-                            }
-                            update_downloads(download, &app_handle).await?;
-                            Ok::<(), String>(())
-                        });
-                    };
+                while let Some(mut download) = output_rx.recv().await {
+                    let app_handle = app_handle.clone();
+                    let client = client.clone();
+                    tokio::spawn(async move {
+                        download.set_status(DownloadStatus::Downloading);
+                        update_downloads(download.clone(), &app_handle).await?;
+                        if let Err(e) = download_file(download.clone(), client).await {
+                            download.set_status(DownloadStatus::Failed);
+                            download.set_failure(e);
+                        } else {
+                            download.set_status(DownloadStatus::Completed);
+                        }
+                        update_downloads(download, &app_handle).await?;
+                        Ok::<(), String>(())
+                    });
                 }
             });
             Ok(())
@@ -150,47 +149,44 @@ async fn remove_completed(state: State<'_, Downloads>) -> Result<(), String> {
 }
 
 async fn download_file(download: DownloadItem, client: Client) -> Result<(), String> {
-    let handle = tokio::spawn(async move {
-        let filename = format!(
-            "[{}] [{}] {}.m4a",
-            download.sub(),
-            download.op(),
-            download.title()
-        );
-        let invalid_chars = Regex::new(r#"[<>:"/\\\?\*|]+"#)
-            .map_err(|e| format!("Invalid regex pattern: {}", e.to_string()))?;
-        let filename = invalid_chars.replace_all(&filename, "").to_string();
-        if std::path::Path::new(&filename).exists() {
-            return Err("File already exists".to_owned());
-        }
-        let mut file = File::create(&filename)
-            .await
-            .map_err(|e| format!("Failed to create file: {}", e.to_string()))?;
-        let data = client
-            .get(download.audio())
-            .send()
-            .await
-            .map_err(|e| format!("Failed to download: {}", e.to_string()))?;
-        let bytes = data
-            .bytes()
-            .await
-            .map_err(|e| format!("Failed to parse to bytes: {}", e.to_string()))?;
-        file.write_all(&bytes)
-            .await
-            .map_err(|e| format!("Failed to write data to file: {}", e.to_string()))?;
-        Tag::read_from_path(&filename)
-            .map_err(|e| format!("Failed to read tags from file: {}", e.to_string()))
-            .and_then(|mut tags| {
-                tags.set_artist(download.op());
-                tags.set_album(download.op());
-                tags.set_album_artist(download.op());
-                tags.set_title(download.title());
-                tags.set_genre(download.sub());
-                tags.write_to_path(&filename)
-                    .map_err(|e| format!("Failed to write tags to file: {}", e.to_string()))
-            })
-    });
-    handle.await.map_err(|e| e.to_string())?
+    let filename = format!(
+        "[{}] [{}] {}.m4a",
+        download.sub(),
+        download.op(),
+        download.title()
+    );
+    let invalid_chars = Regex::new(r#"[<>:"/\\\?\*|]+"#)
+        .map_err(|e| format!("Invalid regex pattern: {}", e.to_string()))?;
+    let filename = invalid_chars.replace_all(&filename, "").to_string();
+    if std::path::Path::new(&filename).exists() {
+        return Err("File already exists".to_owned());
+    }
+    let mut file = File::create(&filename)
+        .await
+        .map_err(|e| format!("Failed to create file: {}", e.to_string()))?;
+    let data = client
+        .get(download.audio())
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download: {}", e.to_string()))?;
+    let bytes = data
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to parse to bytes: {}", e.to_string()))?;
+    file.write_all(&bytes)
+        .await
+        .map_err(|e| format!("Failed to write data to file: {}", e.to_string()))?;
+    Tag::read_from_path(&filename)
+        .map_err(|e| format!("Failed to read tags from file: {}", e.to_string()))
+        .and_then(|mut tags| {
+            tags.set_artist(download.op());
+            tags.set_album(download.op());
+            tags.set_album_artist(download.op());
+            tags.set_title(download.title());
+            tags.set_genre(download.sub());
+            tags.write_to_path(&filename)
+                .map_err(|e| format!("Failed to write tags to file: {}", e.to_string()))
+        })
 }
 
 #[tauri::command]

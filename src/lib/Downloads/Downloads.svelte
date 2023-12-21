@@ -146,9 +146,13 @@
       <div class="progress-bar" transition:fly={{ y: -20 }}>
         <span>
           {adding > 0 ? "Adding" : "Downloading"}
-          {downloading > 0 ? `${downloads.length - downloading} of ` : ""}
-          {adding > 0 ? adding : downloading}
-          {adding + downloading === 1 ? "link" : "links"}...
+          {adding > 0
+            ? adding
+            : downloading > 0
+              ? downloads.length - downloading
+              : ""}
+          {downloading > 0 ? `of ${downloads.length}` : ""}
+          {adding + downloading === 1 ? "link" : "links"}
         </span>
         <BarLoader color="var(--color-primary)" size="5" unit="rem" />
       </div>
