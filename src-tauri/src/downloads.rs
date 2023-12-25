@@ -31,6 +31,7 @@ impl DownloadInput {
         &self.url
     }
 
+    // TODO: Make modular (e.g. can handle different hosts)
     pub async fn parse_input(self, id: usize) -> Result<DownloadItem, String> {
         let response = reqwest::get(&self.url)
             .await

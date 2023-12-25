@@ -149,11 +149,17 @@ async fn remove_completed(state: State<'_, Downloads>) -> Result<(), String> {
 }
 
 async fn download_file(download: DownloadItem, client: Client) -> Result<(), String> {
+    let extension = download
+        .audio()
+        .split(".")
+        .last()
+        .ok_or(format!("Audio URL contains no valid file extension"))?;
     let filename = format!(
-        "[{}] [{}] {}.m4a",
+        "[{}] [{}] {}.{}",
         download.sub(),
         download.op(),
-        download.title()
+        download.title(),
+        extension,
     );
     let invalid_chars = Regex::new(r#"[<>:"/\\\?\*|]+"#)
         .map_err(|e| format!("Invalid regex pattern: {}", e.to_string()))?;
