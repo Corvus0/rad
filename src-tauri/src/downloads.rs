@@ -56,7 +56,7 @@ impl DownloadInput {
             .as_str()
             .to_owned();
         let document = Html::parse_document(&html);
-        let title = Selector::parse("div.jp-title")
+        let raw_title: String = Selector::parse("div.jp-title")
             .map_err(|e| e.to_string())
             .and_then(|selector| {
                 document
@@ -66,7 +66,15 @@ impl DownloadInput {
             })?
             .text()
             .collect();
-        Ok(DownloadItem::new(self, audio_url, title, id))
+        let title = Regex::new(r"(\[.+?\])")
+            .map_err(|e| e.to_string())?
+            .replace_all(&raw_title, "");
+        Ok(DownloadItem::new(
+            self,
+            audio_url,
+            title.trim().to_string(),
+            id,
+        ))
     }
 }
 
