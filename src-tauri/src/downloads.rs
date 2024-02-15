@@ -1,12 +1,8 @@
-use regex::Regex;
-use scraper::{Html, Selector};
+use std::collections::HashMap;
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
-pub struct DownloadInput {
-    url: String,
-    op: String,
-    sub: String,
-}
+use regex::Regex;
+use reqwest::header::REFERER;
+use scraper::{Html, Selector};
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DownloadStatus {
@@ -16,14 +12,27 @@ pub enum DownloadStatus {
     Failed,
 }
 
+struct HostParameters {
+    audio_regex: String,
+    title_selector: String,
+    headers: HashMap<String, String>,
+}
+
+impl HostParameters {
+    fn new(audio_regex: String, title_selector: String, headers: HashMap<String, String>) -> Self {
+        Self {
+            audio_regex,
+            title_selector,
+            headers,
+        }
+    }
+}
+
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
-pub struct DownloadItem {
-    input: DownloadInput,
-    audio: String,
-    title: String,
-    status: DownloadStatus,
-    id: usize,
-    failure: Option<String>,
+pub struct DownloadInput {
+    url: String,
+    op: String,
+    sub: String,
 }
 
 impl DownloadInput {
@@ -31,8 +40,48 @@ impl DownloadInput {
         &self.url
     }
 
-    // TODO: Make modular (e.g. can handle different hosts)
-    pub async fn parse_input(self, id: usize) -> Result<DownloadItem, String> {
+    // Hostname regex pattern from URI spec: https://www.rfc-editor.org/rfc/rfc3986#appendix-B
+    fn parse_hostname(&self) -> Result<HostParameters, String> {
+        let hostname = Regex::new(r"^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?")
+            .map_err(|e| e.to_string())
+            .and_then(|re| {
+                re.captures(&self.url)
+                    .ok_or(format!("Failed to match hostname: {}", &self.url))
+            })
+            .and_then(|caps| {
+                caps.get(4)
+                    .ok_or(format!("URL contains no valid hostname: {}", &self.url))
+            })?
+            .as_str();
+        let mut headers = HashMap::new();
+        let (audio_regex, title_selector) = match hostname {
+            "soundgasm.net" => (
+                r#"(https:\/\/media.soundgasm.net\/sounds\/[^\r\n\t\f\v"]+)"#,
+                "div.jp-title",
+            ),
+            "www.whyp.it" => {
+                headers.insert(REFERER.to_string(), "https://www.whyp.it/".to_owned());
+                (
+                    r#"(https:\\u002F\\u002Fcdn.whyp.it\\u002F[^\r\n\t\f\v"]+)"#,
+                    "h1",
+                )
+            }
+            _ => {
+                return Err(format!(
+                    "URL contains invalid or unsupported host: {}",
+                    &self.url
+                ))
+            }
+        };
+        Ok(HostParameters::new(
+            audio_regex.to_owned(),
+            title_selector.to_owned(),
+            headers,
+        ))
+    }
+
+    async fn parse_info(&self) -> Result<DownloadInfo, String> {
+        let params = self.parse_hostname()?;
         let response = reqwest::get(&self.url)
             .await
             .map_err(|e| format!("Failed to fetch page {}: {}", &self.url, e.to_string()))?;
@@ -43,20 +92,23 @@ impl DownloadInput {
                 e.to_string()
             )
         })?;
-        let audio_url = Regex::new(r#"(https:\/\/media.soundgasm.net\/sounds\/[^\r\n\t\f\v"]+)"#)
-            .map_err(|e| e.to_string())
-            .and_then(|re| {
-                re.captures(&html)
-                    .ok_or(format!("Failed to find valid audio url: {}", &self.url))
-            })
-            .and_then(|caps| {
-                caps.get(0)
-                    .ok_or(format!("Page contains no valid audio url: {}", &self.url))
-            })?
-            .as_str()
-            .to_owned();
+        let audio = serde_json::from_str(&format!(
+            "\"{}\"",
+            Regex::new(&params.audio_regex)
+                .map_err(|e| e.to_string())
+                .and_then(|re| {
+                    re.captures(&html)
+                        .ok_or(format!("Failed to find valid audio url: {}", &self.url))
+                })
+                .and_then(|caps| {
+                    caps.get(0)
+                        .ok_or(format!("Page contains no valid audio url: {}", &self.url))
+                })?
+                .as_str(),
+        ))
+        .map_err(|e| e.to_string())?;
         let document = Html::parse_document(&html);
-        let raw_title: String = Selector::parse("div.jp-title")
+        let raw_title: String = Selector::parse(&params.title_selector)
             .map_err(|e| e.to_string())
             .and_then(|selector| {
                 document
@@ -69,21 +121,50 @@ impl DownloadInput {
         let title = Regex::new(r"(\[.+?\])")
             .map_err(|e| e.to_string())?
             .replace_all(&raw_title, "");
-        Ok(DownloadItem::new(
-            self,
-            audio_url,
+        Ok(DownloadInfo::new(
+            audio,
             title.trim().to_string(),
-            id,
+            params.headers,
         ))
+    }
+
+    pub async fn parse_input(self, id: usize) -> Result<DownloadItem, String> {
+        let info = self.parse_info().await?;
+        Ok(DownloadItem::new(self, info, id))
     }
 }
 
-impl DownloadItem {
-    fn new(input: DownloadInput, audio: String, title: String, id: usize) -> Self {
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+struct DownloadInfo {
+    audio: String,
+    title: String,
+    headers: HashMap<String, String>,
+}
+
+impl DownloadInfo {
+    fn new(audio: String, title: String, headers: HashMap<String, String>) -> Self {
         Self {
-            input,
             audio,
             title,
+            headers,
+        }
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+pub struct DownloadItem {
+    input: DownloadInput,
+    info: DownloadInfo,
+    status: DownloadStatus,
+    id: usize,
+    failure: Option<String>,
+}
+
+impl DownloadItem {
+    fn new(input: DownloadInput, info: DownloadInfo, id: usize) -> Self {
+        Self {
+            input,
+            info,
             status: DownloadStatus::Initial,
             id,
             failure: None,
@@ -107,11 +188,11 @@ impl DownloadItem {
     }
 
     pub fn audio(&self) -> &str {
-        &self.audio
+        &self.info.audio
     }
 
     pub fn title(&self) -> &str {
-        &self.title
+        &self.info.title
     }
 
     pub fn set_status(&mut self, status: DownloadStatus) {
@@ -128,5 +209,9 @@ impl DownloadItem {
 
     pub fn id(&self) -> &usize {
         &self.id
+    }
+
+    pub fn headers(&self) -> &HashMap<String, String> {
+        &self.info.headers
     }
 }

@@ -27,7 +27,7 @@ tokio = { version = "1.35.0", features = [
     "sync",
 ] }
 regex = "1.10.2"
-mp4ameta = "0.11.0"
+lofty = "0.18.2"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

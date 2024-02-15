@@ -4,6 +4,12 @@ export interface DownloadInput {
   sub: string;
 }
 
+export interface DownloadInfo {
+  audio: string;
+  title: string;
+  headers: Map<string, string>;
+}
+
 export enum DownloadStatus {
   Initial = "Initial",
   Downloading = "Downloading",
@@ -14,8 +20,7 @@ export enum DownloadStatus {
 export interface DownloadOutput {
   id: number;
   input: DownloadInput;
-  audio: string;
-  title: string;
+  info: DownloadInfo;
   status: DownloadStatus;
   failure: string | null;
 }

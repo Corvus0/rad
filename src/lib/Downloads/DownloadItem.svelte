@@ -99,7 +99,7 @@
           <input
             type="text"
             placeholder="Title"
-            bind:value={fields.title}
+            bind:value={fields.info.title}
             required
             autocomplete="off"
           />
@@ -108,8 +108,8 @@
     {:else}
       <div class="download-item__player" transition:fly={{ y: 70 }}>
         <AudioPlayer
-          src={download.audio}
-          title={download.title}
+          src={download.info.audio}
+          title={download.info.title}
           artist={download.input.op}
           sub={download.input.sub}
           error={download.failure}

@@ -3,9 +3,9 @@
 
 mod downloads;
 use downloads::*;
-use mp4ameta::Tag;
+use lofty::{Accessor, ItemKey, Tag, TagExt, TaggedFileExt};
 use regex::Regex;
-use reqwest::Client;
+use reqwest::{header::HeaderMap, Client};
 use std::collections::HashMap;
 use tauri::{Manager, State};
 use tokio::{
@@ -172,6 +172,7 @@ async fn download_file(download: DownloadItem, client: Client) -> Result<(), Str
         .map_err(|e| format!("Failed to create file: {}", e.to_string()))?;
     let data = client
         .get(download.audio())
+        .headers(HeaderMap::try_from(download.headers()).map_err(|e| e.to_string())?)
         .send()
         .await
         .map_err(|e| format!("Failed to download: {}", e.to_string()))?;
@@ -182,17 +183,16 @@ async fn download_file(download: DownloadItem, client: Client) -> Result<(), Str
     file.write_all(&bytes)
         .await
         .map_err(|e| format!("Failed to write data to file: {}", e.to_string()))?;
-    Tag::read_from_path(&filename)
-        .map_err(|e| format!("Failed to read tags from file: {}", e.to_string()))
-        .and_then(|mut tags| {
-            tags.set_artist(download.op());
-            tags.set_album(download.op());
-            tags.set_album_artist(download.op());
-            tags.set_title(download.title());
-            tags.set_genre(download.sub());
-            tags.write_to_path(&filename)
-                .map_err(|e| format!("Failed to write tags to file: {}", e.to_string()))
-        })
+    let tagged_file = lofty::read_from_path(&filename)
+        .map_err(|e| format!("Failed to read tags from file: {}", e.to_string()))?;
+    let mut tag = Tag::new(tagged_file.primary_tag_type());
+    tag.set_artist(download.op().to_owned());
+    tag.set_album(download.op().to_owned());
+    tag.insert_text(ItemKey::AlbumArtist, download.op().to_owned());
+    tag.set_title(download.title().to_owned());
+    tag.set_genre(download.sub().to_owned());
+    tag.save_to_path(&filename)
+        .map_err(|e| format!("Failed to write tags to file: {}", e.to_string()))
 }
 
 #[tauri::command]
