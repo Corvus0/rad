@@ -12,17 +12,18 @@ pub enum DownloadStatus {
     Failed,
 }
 
-struct HostParameters {
-    audio_regex: String,
-    title_selector: String,
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+struct DownloadInfo {
+    audio: String,
+    title: String,
     headers: HashMap<String, String>,
 }
 
-impl HostParameters {
-    fn new(audio_regex: String, title_selector: String, headers: HashMap<String, String>) -> Self {
+impl DownloadInfo {
+    fn new(audio: String, title: String, headers: HashMap<String, String>) -> Self {
         Self {
-            audio_regex,
-            title_selector,
+            audio,
+            title,
             headers,
         }
     }
@@ -41,7 +42,10 @@ impl DownloadInput {
     }
 
     // Hostname regex pattern from URI spec: https://www.rfc-editor.org/rfc/rfc3986#appendix-B
-    fn parse_hostname(&self) -> Result<HostParameters, String> {
+    fn parse_hostname(
+        &self,
+        headers: &mut HashMap<String, String>,
+    ) -> Result<(String, String), String> {
         let hostname = Regex::new(r"^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?")
             .map_err(|e| e.to_string())
             .and_then(|re| {
@@ -53,14 +57,13 @@ impl DownloadInput {
                     .ok_or(format!("URL contains no valid hostname: {}", &self.url))
             })?
             .as_str();
-        let mut headers = HashMap::new();
-        let (audio_regex, title_selector) = match hostname {
-            "soundgasm.net" => (
+        let (audio_regex, title_selector) = match () {
+            _ if hostname.contains("soundgasm.net") => (
                 r#"(https:\/\/media.soundgasm.net\/sounds\/[^\r\n\t\f\v"]+)"#,
                 "div.jp-title",
             ),
-            "www.whyp.it" => {
-                headers.insert(REFERER.to_string(), "https://www.whyp.it/".to_owned());
+            _ if hostname.contains("whyp.it") => {
+                headers.insert(REFERER.to_string(), "https://whyp.it/".to_owned());
                 (
                     r#"(https:\\u002F\\u002Fcdn.whyp.it\\u002F[^\r\n\t\f\v"]+)"#,
                     "h1",
@@ -73,15 +76,12 @@ impl DownloadInput {
                 ))
             }
         };
-        Ok(HostParameters::new(
-            audio_regex.to_owned(),
-            title_selector.to_owned(),
-            headers,
-        ))
+        Ok((audio_regex.to_owned(), title_selector.to_owned()))
     }
 
     async fn parse_info(&self) -> Result<DownloadInfo, String> {
-        let params = self.parse_hostname()?;
+        let mut headers = HashMap::new();
+        let (audio_regex, title_selector) = self.parse_hostname(&mut headers)?;
         let response = reqwest::get(&self.url)
             .await
             .map_err(|e| format!("Failed to fetch page {}: {}", &self.url, e.to_string()))?;
@@ -94,7 +94,7 @@ impl DownloadInput {
         })?;
         let audio = serde_json::from_str(&format!(
             "\"{}\"",
-            Regex::new(&params.audio_regex)
+            Regex::new(&audio_regex)
                 .map_err(|e| e.to_string())
                 .and_then(|re| {
                     re.captures(&html)
@@ -108,7 +108,7 @@ impl DownloadInput {
         ))
         .map_err(|e| e.to_string())?;
         let document = Html::parse_document(&html);
-        let raw_title: String = Selector::parse(&params.title_selector)
+        let raw_title: String = Selector::parse(&title_selector)
             .map_err(|e| e.to_string())
             .and_then(|selector| {
                 document
@@ -121,33 +121,12 @@ impl DownloadInput {
         let title = Regex::new(r"(\[.+?\])")
             .map_err(|e| e.to_string())?
             .replace_all(&raw_title, "");
-        Ok(DownloadInfo::new(
-            audio,
-            title.trim().to_string(),
-            params.headers,
-        ))
+        Ok(DownloadInfo::new(audio, title.trim().to_string(), headers))
     }
 
     pub async fn parse_input(self, id: usize) -> Result<DownloadItem, String> {
         let info = self.parse_info().await?;
         Ok(DownloadItem::new(self, info, id))
-    }
-}
-
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
-struct DownloadInfo {
-    audio: String,
-    title: String,
-    headers: HashMap<String, String>,
-}
-
-impl DownloadInfo {
-    fn new(audio: String, title: String, headers: HashMap<String, String>) -> Self {
-        Self {
-            audio,
-            title,
-            headers,
-        }
     }
 }
 
