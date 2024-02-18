@@ -1,18 +1,29 @@
-use std::collections::HashMap;
-
 use regex::Regex;
 use reqwest::header::REFERER;
 use scraper::{Html, Selector};
+use std::collections::HashMap;
 
-#[derive(serde::Deserialize, serde::Serialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Default,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    serde::Deserialize,
+    serde::Serialize,
+)]
 pub enum DownloadStatus {
+    #[default]
     Initial,
     Downloading,
     Completed,
     Failed,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(Default, Debug, Clone, serde::Deserialize, serde::Serialize)]
 struct DownloadInfo {
     audio: String,
     title: String,
@@ -29,7 +40,7 @@ impl DownloadInfo {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(Default, Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct DownloadInput {
     url: String,
     op: String,
@@ -130,7 +141,7 @@ impl DownloadInput {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(Default, Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct DownloadItem {
     input: DownloadInput,
     info: DownloadInfo,
