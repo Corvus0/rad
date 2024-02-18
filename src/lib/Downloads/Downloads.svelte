@@ -15,6 +15,7 @@
   let downloads: DownloadOutput[] = [];
   let adding = 0;
   let downloading = 0;
+  let queued = 0;
   let downloadsList: HTMLElement;
   $: loading = adding + downloading > 0;
   let unlisten: UnlistenFn;
@@ -49,6 +50,7 @@
     if (download.status != DownloadStatus.Downloading) {
       downloading -= 1;
     }
+    if (downloading === 0) queued = 0;
     downloads = downloads.map((d) => (d.id === download.id ? download : d));
   }
 
@@ -119,6 +121,7 @@
     event: CustomEvent<{ download: DownloadOutput }>
   ) {
     downloading += 1;
+    queued += 1;
     try {
       await invoke("queue_download", {
         download: event.detail.download,
@@ -132,6 +135,7 @@
     try {
       await invoke("queue_downloads");
       downloading = downloads.length;
+      queued = downloads.length;
     } catch (e) {
       errorMessage = e as string;
     }
@@ -145,14 +149,10 @@
     {#if loading}
       <div class="progress-bar" transition:fly={{ y: -20 }}>
         <span>
-          {adding > 0 ? "Adding" : "Downloading"}
-          {adding > 0
-            ? adding
-            : downloading > 0
-              ? downloads.length - downloading
-              : ""}
-          {downloading > 0 ? `of ${downloads.length}` : ""}
-          {adding + downloading === 1 ? "link" : "links"}
+          {adding > 0 ? adding : downloading > 0 ? queued - downloading : ""}
+          {downloading > 0 ? `of ${queued}` : ""}
+          {adding + queued === 1 ? "Link" : "Links"}
+          {adding > 0 ? "Added" : "Downloaded"}
         </span>
         <BarLoader color="var(--color-primary)" size="5" unit="rem" />
       </div>
