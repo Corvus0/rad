@@ -27,14 +27,21 @@ pub enum DownloadStatus {
 struct DownloadInfo {
     audio: String,
     title: String,
+    extension: String,
     headers: HashMap<String, String>,
 }
 
 impl DownloadInfo {
-    fn new(audio: String, title: String, headers: HashMap<String, String>) -> Self {
+    fn new(
+        audio: String,
+        title: String,
+        extension: String,
+        headers: HashMap<String, String>,
+    ) -> Self {
         Self {
             audio,
             title,
+            extension,
             headers,
         }
     }
@@ -52,47 +59,11 @@ impl DownloadInput {
         &self.url
     }
 
-    // Hostname regex pattern from URI spec: https://www.rfc-editor.org/rfc/rfc3986#appendix-B
-    fn parse_hostname(
+    async fn info_from_page(
         &self,
-        headers: &mut HashMap<String, String>,
-    ) -> Result<(String, String), String> {
-        let hostname = Regex::new(r"^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?")
-            .map_err(|e| e.to_string())
-            .and_then(|re| {
-                re.captures(&self.url)
-                    .ok_or(format!("Failed to match hostname: {}", &self.url))
-            })
-            .and_then(|caps| {
-                caps.get(4)
-                    .ok_or(format!("URL contains no valid hostname: {}", &self.url))
-            })?
-            .as_str();
-        let (audio_regex, title_selector) = match () {
-            _ if hostname.contains("soundgasm.net") => (
-                r#"(https:\/\/media.soundgasm.net\/sounds\/[^\r\n\t\f\v"]+)"#,
-                "div.jp-title",
-            ),
-            _ if hostname.contains("whyp.it") => {
-                headers.insert(REFERER.to_string(), "https://whyp.it/".to_owned());
-                (
-                    r#"(https:\\u002F\\u002Fcdn.whyp.it\\u002F[^\r\n\t\f\v"]+)"#,
-                    "h1",
-                )
-            }
-            _ => {
-                return Err(format!(
-                    "URL contains invalid or unsupported host: {}",
-                    &self.url
-                ))
-            }
-        };
-        Ok((audio_regex.to_owned(), title_selector.to_owned()))
-    }
-
-    async fn parse_info(&self) -> Result<DownloadInfo, String> {
-        let mut headers = HashMap::new();
-        let (audio_regex, title_selector) = self.parse_hostname(&mut headers)?;
+        audio_regex: &str,
+        title_selector: &str,
+    ) -> Result<(String, String, String), String> {
         let response = reqwest::get(&self.url)
             .await
             .map_err(|e| format!("Failed to fetch page {}: {}", &self.url, e.to_string()))?;
@@ -103,9 +74,9 @@ impl DownloadInput {
                 e.to_string()
             )
         })?;
-        let audio = serde_json::from_str(&format!(
+        let audio: String = serde_json::from_str(&format!(
             "\"{}\"",
-            Regex::new(&audio_regex)
+            Regex::new(audio_regex)
                 .map_err(|e| e.to_string())
                 .and_then(|re| {
                     re.captures(&html)
@@ -118,8 +89,13 @@ impl DownloadInput {
                 .as_str(),
         ))
         .map_err(|e| e.to_string())?;
+        let extension = audio
+            .split(".")
+            .last()
+            .ok_or(format!("Audio URL contains no valid file extension"))?
+            .to_owned();
         let document = Html::parse_document(&html);
-        let raw_title: String = Selector::parse(&title_selector)
+        let raw_title: String = Selector::parse(title_selector)
             .map_err(|e| e.to_string())
             .and_then(|selector| {
                 document
@@ -131,8 +107,64 @@ impl DownloadInput {
             .collect();
         let title = Regex::new(r"(\[.+?\])")
             .map_err(|e| e.to_string())?
-            .replace_all(&raw_title, "");
-        Ok(DownloadInfo::new(audio, title.trim().to_string(), headers))
+            .replace_all(&raw_title, "")
+            .trim()
+            .to_owned();
+        Ok((audio, title, extension))
+    }
+
+    // Hostname regex pattern from URI spec: https://www.rfc-editor.org/rfc/rfc3986#appendix-B
+    async fn parse_info(&self) -> Result<DownloadInfo, String> {
+        let url_captures =
+            Regex::new(r"^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?")
+                .map_err(|e| e.to_string())
+                .and_then(|re| {
+                    re.captures(&self.url)
+                        .ok_or(format!("Failed to match hostname: {}", &self.url))
+                })?;
+        let hostname = url_captures
+            .get(4)
+            .ok_or(format!("URL contains no valid hostname: {}", &self.url))?
+            .as_str()
+            .to_owned();
+        let mut headers = HashMap::new();
+        let (audio, title, extension) = match () {
+            _ if hostname.contains("soundgasm.net") => {
+                self.info_from_page(
+                    r#"(https:\/\/media\.soundgasm\.net\/sounds\/[^\r\n\t\f\v"]+)"#,
+                    "div.jp-title",
+                )
+                .await?
+            }
+            _ if hostname.contains("whyp.it") => {
+                headers.insert(REFERER.to_string(), "https://whyp.it/".to_owned());
+                self.info_from_page(
+                    r#"(https:\\u002F\\u002Fcdn\.whyp\.it\\u002F[^\r\n\t\f\v"]+)"#,
+                    "h1",
+                )
+                .await?
+            }
+            _ if hostname.contains("vocaroo.com") => {
+                headers.insert(REFERER.to_string(), "https://vocaroo.com/".to_owned());
+                let id = url_captures
+                    .get(5)
+                    .ok_or(format!("URL contains no valid id: {}", &self.url))?
+                    .as_str()
+                    .to_owned();
+                (
+                    format!("https://media1.vocaroo.com/mp3{id}"),
+                    format!("Vocaroo {id}"),
+                    "mp3".to_owned(),
+                )
+            }
+            _ => {
+                return Err(format!(
+                    "URL contains invalid or unsupported host: {}",
+                    &self.url
+                ))
+            }
+        };
+        Ok(DownloadInfo::new(audio, title, extension, headers))
     }
 
     pub async fn parse_input(self, id: usize) -> Result<DownloadItem, String> {
@@ -203,5 +235,19 @@ impl DownloadItem {
 
     pub fn headers(&self) -> &HashMap<String, String> {
         &self.info.headers
+    }
+
+    pub fn extension(&self) -> &str {
+        &self.info.extension
+    }
+
+    pub fn filename(&self) -> Result<String, String> {
+        let filename = format!(
+            "[{}] [{}] {}.{}",
+            &self.input.sub, &self.input.op, &self.info.title, &self.info.extension,
+        );
+        Regex::new(r#"[<>:"/\\\?\*|]+"#)
+            .map_err(|e| format!("Invalid regex pattern: {}", e.to_string()))
+            .map(|re| re.replace_all(&filename, "").trim().to_owned())
     }
 }

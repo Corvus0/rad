@@ -7,6 +7,7 @@ export interface DownloadInput {
 export interface DownloadInfo {
   audio: string;
   title: string;
+  extension: string;
   headers: Map<string, string>;
 }
 
