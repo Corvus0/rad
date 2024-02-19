@@ -4,9 +4,11 @@
   import { onDestroy, onMount, tick } from "svelte";
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen, type UnlistenFn, type Event } from "@tauri-apps/api/event";
+  import { open } from "@tauri-apps/api/dialog";
   import { BarLoader } from "svelte-loading-spinners";
   import { fly } from "svelte/transition";
   import { flip } from "svelte/animate";
+  import Icon from "@iconify/svelte";
 
   import { DownloadStatus, type DownloadOutput } from "./Downloads";
   import DownloadForm from "./DownloadForm.svelte";
@@ -20,10 +22,12 @@
   $: loading = adding + downloading > 0;
   let unlisten: UnlistenFn;
   let errorMessage: string | null = null;
+  let directory = "";
 
   onMount(async () => {
     try {
       downloads = await invoke("get_downloads");
+      directory = await invoke("get_directory");
     } catch (e) {
       errorMessage = e as string;
     }
@@ -43,6 +47,21 @@
 
   function clearError() {
     errorMessage = null;
+  }
+
+  async function chooseDirectory() {
+    try {
+      const newDirectory = await open({
+        directory: true,
+        defaultPath: directory,
+      });
+      if (typeof newDirectory === "string") {
+        await invoke("set_directory", { directory: newDirectory });
+        directory = newDirectory;
+      }
+    } catch (error) {
+      errorMessage = error as string;
+    }
   }
 
   function updateDownloads(e: Event<DownloadOutput>) {
@@ -117,14 +136,12 @@
     }
   }
 
-  async function downloadSingle(
-    event: CustomEvent<{ download: DownloadOutput }>
-  ) {
+  async function downloadSingle(event: CustomEvent<{ id: number }>) {
     downloading += 1;
     queued += 1;
     try {
       await invoke("queue_download", {
-        download: event.detail.download,
+        id: event.detail.id,
       });
     } catch (error) {
       errorMessage = error as string;
@@ -200,6 +217,10 @@
     >
     <button class="clear-downloads" on:click={clearDownloads} disabled={loading}
       >Clear Downloads</button
+    >
+    <button on:click={chooseDirectory} disabled={loading}
+      >{directory}
+      <Icon icon="material-symbols:folder-open-outline-rounded" /></button
     >
   </div>
 </div>

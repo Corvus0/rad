@@ -33,13 +33,13 @@
 
   function emitRemove() {
     dispatch("remove", {
-      id: download?.id,
+      id: download.id,
     });
   }
 
   function emitDownload() {
     dispatch("download", {
-      download,
+      id: download.id,
     });
   }
 </script>

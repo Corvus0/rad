@@ -15,7 +15,9 @@
       "shell": {
         "all": false,
         "open": true
-      }
+      },
+      "dialog": { "open": true },
+      "path": { "all": true }
     },
     "bundle": {
       "active": true,
@@ -30,7 +32,7 @@
       ]
     },
     "security": {
-      "csp": null
+      "csp": "default-src 'self'"
     },
     "windows": [
       {

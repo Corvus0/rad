@@ -221,16 +221,20 @@ impl DownloadItem {
         self.status = status;
     }
 
-    pub fn set_failure(&mut self, failure: String) {
-        self.failure = Some(failure);
+    pub fn set_failure(&mut self, failure: Option<String>) {
+        self.failure = failure;
     }
 
     pub fn is_completed(&self) -> bool {
         self.status == DownloadStatus::Completed
     }
 
-    pub fn id(&self) -> &usize {
-        &self.id
+    pub fn is_initial(&self) -> bool {
+        self.status == DownloadStatus::Initial
+    }
+
+    pub fn id(&self) -> usize {
+        self.id
     }
 
     pub fn headers(&self) -> &HashMap<String, String> {

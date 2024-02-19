@@ -23,6 +23,8 @@ fn main() -> Result<(), tauri::Error> {
             remove_completed,
             queue_download,
             queue_downloads,
+            get_directory,
+            set_directory,
         ])
         .setup(move |app| setup_app(app, rx))
         .run(tauri::generate_context!())
