@@ -5,6 +5,7 @@
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen, type UnlistenFn, type Event } from "@tauri-apps/api/event";
   import { open } from "@tauri-apps/api/dialog";
+  import { open as openShell } from "@tauri-apps/api/shell";
   import { BarLoader } from "svelte-loading-spinners";
   import { fly } from "svelte/transition";
   import { flip } from "svelte/animate";
@@ -59,6 +60,14 @@
         await invoke("set_directory", { directory: newDirectory });
         directory = newDirectory;
       }
+    } catch (error) {
+      errorMessage = error as string;
+    }
+  }
+
+  async function openDirectory() {
+    try {
+      await openShell(directory);
     } catch (error) {
       errorMessage = error as string;
     }
@@ -209,19 +218,33 @@
     {/each}
   </ul>
   <div class="actions">
-    <button class="download-all" on:click={downloadAll} disabled={loading}
-      >Download All</button
-    >
-    <button on:click={removeDownloaded} disabled={loading}
-      >Remove Downloaded</button
-    >
-    <button class="clear-downloads" on:click={clearDownloads} disabled={loading}
-      >Clear Downloads</button
-    >
-    <button on:click={chooseDirectory} disabled={loading}
-      >{directory}
-      <Icon icon="material-symbols:folder-open-outline-rounded" /></button
-    >
+    <div class="actions__group">
+      <button class="download-all" on:click={downloadAll} disabled={loading}
+        >Download All</button
+      >
+      <button on:click={removeDownloaded} disabled={loading}
+        >Remove Downloaded</button
+      >
+      <button
+        class="clear-downloads"
+        on:click={clearDownloads}
+        disabled={loading}>Clear Downloads</button
+      >
+    </div>
+    <div class="actions__group actions__group--end">
+      <button
+        class="directory"
+        title="Choose download directory"
+        on:click={chooseDirectory}><span>{directory}</span></button
+      >
+      <button
+        title="Open download directory"
+        on:click={openDirectory}
+        disabled={loading}
+      >
+        <Icon icon="material-symbols:folder-open-outline-rounded" /></button
+      >
+    </div>
   </div>
 </div>
 
@@ -258,8 +281,28 @@
 
   .actions {
     display: flex;
-    gap: 0.5rem;
+    justify-content: space-between;
     flex-wrap: wrap;
+    width: 100%;
+    gap: 0.5rem;
+
+    &__group {
+      display: flex;
+      gap: 0.5rem;
+
+      &--end {
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  .directory {
+    max-width: 25rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+    direction: rtl;
   }
 
   .progress-wrapper {
