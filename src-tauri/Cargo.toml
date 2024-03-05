@@ -3,7 +3,7 @@ name = "rad"
 version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]
-license = ""
+license = "Apache-2.0 OR MIT"
 repository = ""
 edition = "2021"
 
