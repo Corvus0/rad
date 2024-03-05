@@ -73,6 +73,7 @@
             bind:value={fields.input.url}
             required
             autocomplete="off"
+            name="url{download.id}"
           />
         </label>
         <label class="download-op">
@@ -82,6 +83,7 @@
             placeholder="Original Poster"
             bind:value={fields.input.op}
             required
+            name="op{download.id}"
           />
         </label>
         <label class="download-sub">
@@ -92,6 +94,7 @@
             placeholder="Subreddit"
             bind:value={fields.input.sub}
             required
+            name="sub{download.id}"
           />
         </label>
         <label class="download-title">
@@ -102,6 +105,7 @@
             bind:value={fields.info.title}
             required
             autocomplete="off"
+            name="title{download.id}"
           />
         </label>
       </form>

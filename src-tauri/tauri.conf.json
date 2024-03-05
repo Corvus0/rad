@@ -32,7 +32,7 @@
       ]
     },
     "security": {
-      "csp": "default-src 'self'"
+      "csp": "default-src 'self'; img-src 'self' data:; connect-src https://api.iconify.design/ https://api.unisvg.com/ https://api.simplesvg.com/; style-src 'unsafe-inline'; style-src-elem 'unsafe-inline' https://tauri.localhost/; media-src https://media.soundgasm.net/ https://cdn.whyp.it/ https://media1.vocaroo.com/"
     },
     "windows": [
       {
