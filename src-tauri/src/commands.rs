@@ -8,7 +8,7 @@ use tokio::spawn;
 pub async fn get_downloads(state: State<'_, DownloadState>) -> Result<Vec<DownloadItem>, String> {
     let mut downloads_vec: Vec<DownloadItem> =
         state.downloads.read().await.values().cloned().collect();
-    downloads_vec.sort_unstable_by(|a, b| a.id().cmp(&b.id()));
+    downloads_vec.sort_unstable_by_key(DownloadItem::id);
     Ok(downloads_vec)
 }
 
@@ -38,10 +38,10 @@ pub async fn update_download(
 ) -> Result<DownloadItem, String> {
     let mut url_id = state.url_id.lock().await;
     let input_url = download.url().to_owned();
-    if let Some(id) = url_id.get(&input_url) {
-        if *id != download.id() {
-            return Err(format!("URL already added: {}", input_url));
-        }
+    if let Some(id) = url_id.get(&input_url)
+        && *id != download.id()
+    {
+        return Err(format!("URL already added: {input_url}"));
     }
     let mut downloads = state.downloads.write().await;
     let old_download = downloads
@@ -60,7 +60,7 @@ pub async fn update_download(
 pub async fn remove_download(id: usize, state: State<'_, DownloadState>) -> Result<(), String> {
     let mut downloads = state.downloads.write().await;
     let mut url_id = state.url_id.lock().await;
-    let download = downloads.remove(&id).ok_or(format!("Invalid id: {}", id))?;
+    let download = downloads.remove(&id).ok_or(format!("Invalid id: {id}"))?;
     let url = download.url();
     url_id.remove(url);
     Ok(())
@@ -87,6 +87,16 @@ pub async fn queue_download(
     id: usize,
     state: tauri::State<'_, DownloadState>,
 ) -> Result<(), String> {
+    if !state
+        .downloads
+        .read()
+        .await
+        .get(&id)
+        .ok_or("Invalid Download Item ID provided")?
+        .is_initial()
+    {
+        return Err("Download Item is not in correct state".to_owned());
+    }
     state
         .queue
         .lock()
@@ -105,8 +115,8 @@ pub async fn queue_downloads(state: State<'_, DownloadState>) -> Result<(), Stri
         .await
         .values()
         .filter(|d| d.is_initial())
-        .map(|d| d.id())
-        .map(|id| {
+        .map(|d| {
+            let id = d.id();
             let queue = queue.clone();
             spawn(async move { queue.send(id).await.map_err(|e| e.to_string()) })
         })

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { fly } from "svelte/transition";
   import Icon from "@iconify/svelte";
   import { Moon } from "svelte-loading-spinners";
@@ -7,12 +6,17 @@
   import { type DownloadOutput, DownloadStatus } from "./Downloads";
   import AudioPlayer from "../AudioPlayer/AudioPlayer.svelte";
 
-  export let download: DownloadOutput;
+  interface Props {
+    download: DownloadOutput;
+    onSave: (download: DownloadOutput, callback: () => void) => void;
+    onRemove: (id: number) => void;
+    onDownload: (id: number) => void;
+  }
 
-  const dispatch = createEventDispatcher();
+  let { download, onSave, onRemove, onDownload }: Props = $props();
 
-  let editing = false;
-  let fields: DownloadOutput = { ...download };
+  let editing = $state(false);
+  const fields: DownloadOutput = $derived(download);
 
   function switchToEditing() {
     editing = true;
@@ -22,25 +26,24 @@
     editing = false;
   }
 
-  function emitEdit() {
-    dispatch("save", {
-      download: { ...fields, status: DownloadStatus.Initial, failure: null },
-      callback: () => {
-        editing = false;
-      },
-    });
+  function handleEdit(e: Event) {
+    e.preventDefault();
+    const download = {
+      ...fields,
+      status: DownloadStatus.Initial,
+      failure: null,
+    };
+    onSave(download, cancelEditing);
   }
 
-  function emitRemove() {
-    dispatch("remove", {
-      id: download.id,
-    });
+  function handleRemove(e: Event) {
+    e.preventDefault();
+    onRemove(download.id);
   }
 
-  function emitDownload() {
-    dispatch("download", {
-      id: download.id,
-    });
+  function handleDownload(e: Event) {
+    e.preventDefault();
+    onDownload(download.id);
   }
 </script>
 
@@ -63,7 +66,7 @@
         transition:fly={{ y: -70 }}
         class="download-item__form"
         id={`download-item-${download.id}`}
-        on:submit|preventDefault={emitEdit}
+        onsubmit={handleEdit}
       >
         <label class="download-url">
           <span class="label-text"> URL </span>
@@ -128,7 +131,7 @@
           class="download-item__button download-item__button--download"
           type="button"
           title="Download"
-          on:click={emitDownload}
+          onclick={handleDownload}
           ><Icon icon="material-symbols:download-rounded" /></button
         >
       {/if}
@@ -144,7 +147,7 @@
           class="download-item__button download-item__button--cancel"
           type="button"
           title="Cancel"
-          on:click={cancelEditing}
+          onclick={cancelEditing}
           ><Icon icon="material-symbols:cancel-outline-rounded" /></button
         >
       {:else}
@@ -152,7 +155,7 @@
           class="download-item__button download-item__button--edit"
           type="button"
           title="Edit"
-          on:click={switchToEditing}
+          onclick={switchToEditing}
           ><Icon icon="material-symbols:edit" /></button
         >
       {/if}
@@ -160,7 +163,7 @@
         class="download-item__button download-item__button--remove"
         type="button"
         title="Remove"
-        on:click={emitRemove}
+        onclick={handleRemove}
         ><Icon icon="material-symbols:delete-outline-rounded" /></button
       >
     </div>

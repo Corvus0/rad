@@ -2,46 +2,38 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
   },
-  "package": {
-    "productName": "rad",
-    "version": "0.1.0"
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": ".*"
-      },
-      "dialog": { "open": true },
-      "path": { "all": true }
-    },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.reddit-audio-downloader.dev",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ]
-    },
-    "security": {
-      "csp": "default-src 'self'; img-src 'self' data:; connect-src https://api.iconify.design/ https://api.unisvg.com/ https://api.simplesvg.com/; style-src 'unsafe-inline'; style-src-elem 'unsafe-inline' https://tauri.localhost/; media-src https://media.soundgasm.net/ https://cdn.whyp.it/ https://media1.vocaroo.com/"
-    },
+  "productName": "rad",
+  "mainBinaryName": "rad",
+  "version": "0.2.0",
+  "identifier": "com.reddit-audio-downloader.dev",
+  "plugins": {},
+  "app": {
     "windows": [
       {
         "fullscreen": false,
         "resizable": true,
         "title": "Reddit Audio Downloader",
         "width": 1200,
-        "height": 800
+        "height": 800,
+        "useHttpsScheme": true
       }
-    ]
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost https://api.iconify.design/ https://api.unisvg.com/ https://api.simplesvg.com/; style-src 'unsafe-inline'; style-src-elem 'unsafe-inline' https://tauri.localhost/; media-src https://media.soundgasm.net/ https://cdn.whyp.it/ https://media1.vocaroo.com/"
+    }
   }
 }

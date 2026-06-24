@@ -1,28 +1,29 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import Icon from "@iconify/svelte";
 
   import type { DownloadInput } from "./Downloads";
 
-  const dispatch = createEventDispatcher();
+  interface Props {
+    addDownload: (downloadInput: DownloadInput, callback: () => void) => void;
+  }
 
-  let url = "";
-  let op = "";
-  let sub = "GWA";
+  let { addDownload }: Props = $props();
 
-  function emitDownload() {
-    const download: DownloadInput = { url, op, sub };
-    dispatch("add", {
-      download,
-      callback: () => {
-        url = "";
-      },
+  let url = $state("");
+  let op = $state("");
+  let sub = $state("GWA");
+
+  function handleDownload(e: Event) {
+    e.preventDefault();
+    const downloadInput: DownloadInput = { url, op, sub };
+    addDownload(downloadInput, () => {
+      url = "";
     });
   }
 </script>
 
 <div>
-  <form class="download-input" on:submit|preventDefault={emitDownload}>
+  <form class="download-input" onsubmit={handleDownload}>
     <div class="form-group">
       <label for="input-url">URL</label>
       <input

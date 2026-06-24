@@ -1,13 +1,17 @@
 <script lang="ts">
-  export let src: string;
-  export let title: string;
-  export let artist: string;
-  export let sub: string;
-  export let error: string | null;
+  interface Props {
+    src: string;
+    title: string;
+    artist: string;
+    sub: string;
+    error: string | null;
+  }
 
-  let time = 0;
-  let duration = 0;
-  let paused = true;
+  let { src, title, artist, sub, error }: Props = $props();
+
+  let time = $state(0);
+  let duration = $state(0);
+  let paused = $state(true);
 
   function format(time: any) {
     if (isNaN(time)) return "...";
@@ -26,16 +30,17 @@
     bind:duration
     bind:paused
     preload="metadata"
-    on:ended={() => {
+    onended={() => {
       time = 0;
     }}
-  />
+  >
+  </audio>
 
   <button
     class="play"
     aria-label={paused ? "play" : "pause"}
-    on:click={() => (paused = !paused)}
-  />
+    onclick={() => (paused = !paused)}
+  ></button>
 
   <div class="info">
     <div class="description">
@@ -50,7 +55,8 @@
       <span>{format(time)}</span>
       <div
         class="slider"
-        on:pointerdown={(e) => {
+        role="progressbar"
+        onpointerdown={(e) => {
           const div = e.currentTarget;
 
           function seek(e) {
@@ -74,11 +80,11 @@
             },
             {
               once: true,
-            }
+            },
           );
         }}
       >
-        <div class="progress" style="--progress: {time / duration}%" />
+        <div class="progress" style="--progress: {time / duration}%"></div>
       </div>
       <span>{duration ? format(duration) : "--:--"}</span>
     </div>

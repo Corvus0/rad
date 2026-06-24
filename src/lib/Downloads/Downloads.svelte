@@ -1,29 +1,31 @@
-<svelte:options immutable />
-
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
-  import { invoke } from "@tauri-apps/api/tauri";
+  import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn, type Event } from "@tauri-apps/api/event";
-  import { open } from "@tauri-apps/api/dialog";
-  import { open as openShell } from "@tauri-apps/api/shell";
+  import { open } from "@tauri-apps/plugin-dialog";
+  import { openPath } from "@tauri-apps/plugin-opener";
   import { BarLoader } from "svelte-loading-spinners";
   import { fly } from "svelte/transition";
   import { flip } from "svelte/animate";
   import Icon from "@iconify/svelte";
 
-  import { DownloadStatus, type DownloadOutput } from "./Downloads";
+  import {
+    DownloadStatus,
+    type DownloadInput,
+    type DownloadOutput,
+  } from "./Downloads";
   import DownloadForm from "./DownloadForm.svelte";
   import DownloadItem from "./DownloadItem.svelte";
 
-  let downloads: DownloadOutput[] = [];
-  let adding = 0;
-  let downloading = 0;
-  let queued = 0;
+  let downloads: DownloadOutput[] = $state([]);
+  let adding = $state(0);
+  let downloading = $state(0);
+  let queued = $state(0);
+  const loading = $derived(adding + downloading > 0);
+  let errorMessage: string | null = $state(null);
+  let directory = $state("");
   let downloadsList: HTMLElement;
-  $: loading = adding + downloading > 0;
   let unlisten: UnlistenFn;
-  let errorMessage: string | null = null;
-  let directory = "";
 
   onMount(async () => {
     try {
@@ -34,7 +36,7 @@
     }
     unlisten = await listen<DownloadOutput>(
       "update_downloads",
-      updateDownloads
+      updateDownloads,
     );
   });
 
@@ -67,7 +69,7 @@
 
   async function openDirectory() {
     try {
-      await openShell(directory);
+      await openPath(directory);
     } catch (error) {
       errorMessage = error as string;
     }
@@ -83,15 +85,16 @@
   }
 
   async function addDownload(
-    event: CustomEvent<{ download: DownloadOutput; callback: () => void }>
+    downloadInput: DownloadInput,
+    callback: () => void,
   ) {
     adding += 1;
     try {
       const download: DownloadOutput = await invoke("add_download", {
-        downloadInput: event.detail.download,
+        downloadInput,
       });
       downloads = downloads.concat(download);
-      event.detail.callback();
+      callback();
       await tick();
       scrollToBottom(downloadsList);
     } catch (error) {
@@ -101,25 +104,26 @@
   }
 
   async function saveDownloadEdit(
-    event: CustomEvent<{ download: DownloadOutput; callback: () => void }>
+    download: DownloadOutput,
+    callback: () => void,
   ) {
     try {
-      const download: DownloadOutput = await invoke("update_download", {
-        download: event.detail.download,
+      const result: DownloadOutput = await invoke("update_download", {
+        download,
       });
-      event.detail.callback();
-      downloads = downloads.map((d) => (d.id === download.id ? download : d));
+      downloads = downloads.map((d) => (d.id === result.id ? result : d));
+      callback();
     } catch (error) {
       errorMessage = error as string;
     }
   }
 
-  async function removeDownload(event: CustomEvent<{ id: number }>) {
+  async function removeDownload(id: number) {
     try {
       await invoke("remove_download", {
-        id: event.detail.id,
+        id,
       });
-      downloads = downloads.filter((d) => d.id !== event.detail.id);
+      downloads = downloads.filter((d) => d.id !== id);
     } catch (error) {
       errorMessage = error as string;
     }
@@ -138,19 +142,19 @@
     try {
       await invoke("remove_completed");
       downloads = downloads.filter(
-        (d) => d.status !== DownloadStatus.Completed
+        (d) => d.status !== DownloadStatus.Completed,
       );
     } catch (e) {
       errorMessage = e as string;
     }
   }
 
-  async function downloadSingle(event: CustomEvent<{ id: number }>) {
+  async function downloadSingle(id: number) {
     downloading += 1;
     queued += 1;
     try {
       await invoke("queue_download", {
-        id: event.detail.id,
+        id,
       });
     } catch (error) {
       errorMessage = error as string;
@@ -160,8 +164,9 @@
   async function downloadAll() {
     try {
       await invoke("queue_downloads");
-      downloading = downloads.length;
-      queued = downloads.length;
+      downloading = queued = downloads.filter(
+        (d) => d.status === DownloadStatus.Initial,
+      ).length;
     } catch (e) {
       errorMessage = e as string;
     }
@@ -170,7 +175,7 @@
 
 <div class="downloads">
   <h1><span class="reddit">Reddit</span> Audio Downloader</h1>
-  <DownloadForm on:add={addDownload} />
+  <DownloadForm {addDownload} />
   <div class="progress-wrapper{loading ? ' loading' : ''}">
     {#if loading}
       <div class="progress-bar" transition:fly={{ y: -20 }}>
@@ -189,7 +194,7 @@
       <button
         transition:fly={{ y: -50 }}
         type="button"
-        on:click={clearError}
+        onclick={clearError}
         class="failure-message"
         title="Dismiss error"
       >
@@ -206,9 +211,9 @@
       >
         <DownloadItem
           {download}
-          on:save={saveDownloadEdit}
-          on:remove={removeDownload}
-          on:download={downloadSingle}
+          onSave={saveDownloadEdit}
+          onRemove={removeDownload}
+          onDownload={downloadSingle}
         />
       </li>
     {:else}
@@ -219,15 +224,15 @@
   </ul>
   <div class="actions">
     <div class="actions__group">
-      <button class="download-all" on:click={downloadAll} disabled={loading}
+      <button class="download-all" onclick={downloadAll} disabled={loading}
         >Download All</button
       >
-      <button on:click={removeDownloaded} disabled={loading}
+      <button onclick={removeDownloaded} disabled={loading}
         >Remove Downloaded</button
       >
       <button
         class="clear-downloads"
-        on:click={clearDownloads}
+        onclick={clearDownloads}
         disabled={loading}>Clear Downloads</button
       >
     </div>
@@ -235,11 +240,11 @@
       <button
         class="directory"
         title="Choose download directory"
-        on:click={chooseDirectory}><span>{directory}</span></button
+        onclick={chooseDirectory}><span>{directory}</span></button
       >
       <button
         title="Open download directory"
-        on:click={openDirectory}
+        onclick={openDirectory}
         disabled={loading}
       >
         <Icon icon="material-symbols:folder-open-outline-rounded" /></button
