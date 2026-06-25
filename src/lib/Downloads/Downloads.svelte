@@ -77,7 +77,10 @@
 
   function updateDownloads(e: Event<DownloadOutput>) {
     const download = e.payload;
-    if (download.status != DownloadStatus.Downloading) {
+    if (
+      download.status === DownloadStatus.Completed ||
+      download.status === DownloadStatus.Failed
+    ) {
       downloading -= 1;
     }
     if (downloading === 0) queued = 0;
@@ -165,7 +168,7 @@
     try {
       await invoke("queue_downloads");
       downloading = queued = downloads.filter(
-        (d) => d.status === DownloadStatus.Initial,
+        (d) => d.status === DownloadStatus.Downloading,
       ).length;
     } catch (e) {
       errorMessage = e as string;
