@@ -1,4 +1,4 @@
-use crate::{DownloadItem, DownloadStatus};
+use crate::downloads::{DownloadItem, DownloadStatus};
 use lofty::{Accessor, ItemKey, Tag, TagExt, TaggedFileExt};
 use reqwest::{Client, header::HeaderMap};
 use std::{

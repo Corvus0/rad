@@ -4,12 +4,12 @@
 mod app;
 mod commands;
 mod downloads;
+mod parsers;
 use app::{DownloadState, setup_app};
 use commands::{
     add_download, clear_downloads, get_directory, get_downloads, queue_download, queue_downloads,
     remove_completed, remove_download, set_directory, update_download,
 };
-pub use downloads::*;
 use tokio::sync::mpsc;
 
 fn main() -> Result<(), tauri::Error> {

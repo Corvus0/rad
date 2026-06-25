@@ -1,6 +1,6 @@
+use crate::DownloadState;
+use crate::downloads::{DownloadInput, DownloadItem};
 use std::path::PathBuf;
-
-use crate::{DownloadInput, DownloadItem, DownloadState};
 use tauri::State;
 use tokio::spawn;
 
