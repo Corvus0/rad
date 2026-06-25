@@ -112,7 +112,7 @@ impl AudiochanParser {
         let slug = url
             .split('/')
             .next_back()
-            .ok_or(format!("Failed to parse slug from URL: {}", url))?;
+            .ok_or(format!("Failed to parse slug from URL: {url}"))?;
         let body = reqwest::get(format!("https://api.{base_url}/audios/slug/{slug}"))
             .await
             .map_err(|e| e.to_string())?
@@ -176,12 +176,12 @@ impl WhypParser {
         let id = {
             let mut slash_parts = url.split('/');
             let (_slug, id) = (slash_parts.next_back(), slash_parts.next_back());
-            id.ok_or(format!("Failed to parse id from URL: {}", url))?
+            id.ok_or(format!("Failed to parse id from URL: {url}"))?
         };
         let token = url
             .split('?')
             .next_back()
-            .ok_or(format!("Failed to parse token from URL: {}", url))?;
+            .ok_or(format!("Failed to parse token from URL: {url}"))?;
         let base_url = "https://api.whyp.it";
         let body = reqwest::get(format!("{base_url}/api/tracks/{id}?{token}"))
             .await
@@ -239,20 +239,20 @@ async fn info_from_page(
 ) -> Result<(String, String, String), String> {
     let response = reqwest::get(url)
         .await
-        .map_err(|e| format!("Failed to fetch page {}: {}", url, e))?;
+        .map_err(|e| format!("Failed to fetch page {url}: {e}"))?;
     let html = response
         .text()
         .await
-        .map_err(|e| format!("Failed to parse html to text {}: {}", url, e))?;
+        .map_err(|e| format!("Failed to parse html to text {url}: {e}"))?;
     let audio: String = Regex::new(audio_regex)
         .map_err(|e| e.to_string())
         .and_then(|re| {
             re.captures(&html)
-                .ok_or(format!("Failed to find valid audio url: {}", url))
+                .ok_or(format!("Failed to find valid audio url: {url}"))
         })
         .and_then(|caps| {
             caps.get(0)
-                .ok_or(format!("Page contains no valid audio url: {}", url))
+                .ok_or(format!("Page contains no valid audio url: {url}"))
         })?
         .as_str()
         .to_owned();
@@ -270,7 +270,7 @@ async fn info_from_page(
             document
                 .select(&selector)
                 .next()
-                .ok_or(format!("Page does not contain title: {}", url))
+                .ok_or(format!("Page does not contain title: {url}"))
         })?
         .text()
         .collect();

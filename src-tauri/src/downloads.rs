@@ -97,7 +97,7 @@ impl DownloadInput {
             parser.audio().to_owned(),
             parser.title().to_owned(),
             parser.extension().to_owned(),
-            parser.headers().to_owned(),
+            parser.headers(),
         ))
     }
 
@@ -175,17 +175,13 @@ impl DownloadItem {
         &self.info.headers
     }
 
-    pub fn extension(&self) -> &str {
-        &self.info.extension
-    }
-
     pub fn filename(&self) -> Result<String, String> {
         let filename = format!(
             "[{}] [{}] {}.{}",
             &self.input.sub, &self.input.op, &self.info.title, &self.info.extension,
         );
         Regex::new(r#"[<>:"/\\\?\*|]+"#)
-            .map_err(|e| format!("Invalid regex pattern: {}", e.to_string()))
+            .map_err(|e| format!("Invalid regex pattern: {e}"))
             .map(|re| re.replace_all(&filename, "").trim().to_owned())
     }
 }
