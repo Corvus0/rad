@@ -30,13 +30,12 @@ struct DownloadInfo {
     headers: HashMap<String, String>,
 }
 
-impl DownloadInfo {
-    fn new(
-        audio: String,
-        title: String,
-        extension: String,
-        headers: HashMap<String, String>,
-    ) -> Self {
+impl From<Box<dyn Parser>> for DownloadInfo {
+    fn from(parser: Box<dyn Parser>) -> Self {
+        let audio = parser.audio().to_owned();
+        let title = parser.title().to_owned();
+        let extension = parser.extension().to_owned();
+        let headers = parser.headers();
         Self {
             audio,
             title,
@@ -57,6 +56,7 @@ impl DownloadInput {
     pub fn url(&self) -> &str {
         &self.url
     }
+
     // Hostname regex pattern from URI spec: https://www.rfc-editor.org/rfc/rfc3986#appendix-B
     async fn parse_info(&self) -> Result<DownloadInfo, String> {
         let url_captures =
@@ -93,12 +93,7 @@ impl DownloadInput {
                 ));
             }
         };
-        Ok(DownloadInfo::new(
-            parser.audio().to_owned(),
-            parser.title().to_owned(),
-            parser.extension().to_owned(),
-            parser.headers(),
-        ))
+        Ok(parser.into())
     }
 
     pub async fn parse_input(self, id: usize) -> Result<DownloadItem, String> {
