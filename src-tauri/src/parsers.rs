@@ -54,20 +54,12 @@ impl Parser for SoundgasmParser {
 
 pub struct VocarooParser {
     audio: String,
-    title: String,
-    extension: String,
 }
 
 impl VocarooParser {
     pub fn new(id: &str) -> Self {
         let audio = format!("https://media1.vocaroo.com/mp3{id}");
-        let title = format!("Vocaroo {id}");
-        let extension = "mp3".to_owned();
-        Self {
-            audio,
-            title,
-            extension,
-        }
+        Self { audio }
     }
 }
 
@@ -76,12 +68,12 @@ impl Parser for VocarooParser {
         &self.audio
     }
 
-    fn title(&self) -> &str {
-        &self.title
+    fn title(&self) -> &'static str {
+        "No title (Vocaroo)"
     }
 
-    fn extension(&self) -> &str {
-        &self.extension
+    fn extension(&self) -> &'static str {
+        "mp3"
     }
 
     fn headers(&self) -> HashMap<String, String> {
