@@ -69,7 +69,7 @@
         onsubmit={handleEdit}
       >
         <label class="download-url">
-          <span class="label-text"> URL </span>
+          <span class="label-text">URL</span>
           <input
             type="text"
             placeholder="URL"
@@ -80,7 +80,7 @@
           />
         </label>
         <label class="download-op">
-          <span class="label-text"> Original Poster </span>
+          <span class="label-text">Original Poster</span>
           <input
             type="text"
             placeholder="Original Poster"
@@ -90,18 +90,18 @@
           />
         </label>
         <label class="download-sub">
-          <span class="label-text"> Subreddit </span>
+          <span class="label-text">Category</span>
           <input
-            list="subreddits"
+            list="categories"
             type="text"
-            placeholder="Subreddit"
+            placeholder="Category"
             bind:value={fields.input.sub}
             required
             name="sub{download.id}"
           />
         </label>
         <label class="download-title">
-          <span class="label-text"> Title </span>
+          <span class="label-text">Title</span>
           <input
             type="text"
             placeholder="Title"

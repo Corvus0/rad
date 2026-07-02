@@ -177,7 +177,7 @@
 </script>
 
 <div class="downloads">
-  <h1><span class="reddit">Reddit</span> Audio Downloader</h1>
+  <h1><span class="rad">Rad</span> Audio Downloader</h1>
   <DownloadForm {addDownload} />
   <div class="progress-wrapper{loading ? ' loading' : ''}">
     {#if loading}
@@ -375,7 +375,7 @@
     color: var(--color-error);
   }
 
-  .reddit {
+  .rad {
     color: var(--color-primary);
   }
 

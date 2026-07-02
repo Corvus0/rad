@@ -1,7 +1,6 @@
-# RAD: Reddit Audio Download Manager
+# RAD: Rad Audio Download Manager
 
-Audio file download manager from various audio hosting sites commonly used
-on many subreddits.
+Audio file download manager supporting various audio hosting sites.
 
 Built with [Tauri](https://tauri.app/) and [Svelte](https://svelte.dev).
 
@@ -10,10 +9,11 @@ Currently supported hosts:
 - Soundgasm
 - Whyp
 - Vocaroo
+- Audiochan
 
 ## Screenshots
 
-![Reddit Audio Download Manager](/screenshots/rad.jpeg)
+![Rad Audio Download Manager](/screenshots/rad.png)
 
 ## Install
 

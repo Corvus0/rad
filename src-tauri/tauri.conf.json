@@ -19,14 +19,14 @@
   "productName": "rad",
   "mainBinaryName": "rad",
   "version": "0.2.0",
-  "identifier": "com.reddit-audio-downloader.dev",
+  "identifier": "com.rad-audio-downloader.dev",
   "plugins": {},
   "app": {
     "windows": [
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "Reddit Audio Downloader",
+        "title": "Rad Audio Downloader",
         "width": 1200,
         "height": 800,
         "useHttpsScheme": true

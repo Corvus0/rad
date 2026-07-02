@@ -48,16 +48,16 @@
     </div>
     <div class="last-input">
       <div class="form-group">
-        <label for="input-sub">Subreddit</label>
+        <label for="input-sub">Category</label>
         <input
-          list="subreddits"
+          list="categories"
           id="input-sub"
           type="text"
-          placeholder="Subreddit"
+          placeholder="Category"
           bind:value={sub}
           required
         />
-        <datalist id="subreddits">
+        <datalist id="categories">
           <option value="GWA"></option>
           <option value="PTA"></option>
         </datalist>
