@@ -80,21 +80,16 @@ async fn download_chunks(chunks: &[String], client: &Client) -> Result<Vec<u8>, 
             })
         })
         .collect();
-    let mut data_chunks = Vec::new();
+    let mut data_chunks = vec![Default::default(); chunks.len()];
     for (i, handle) in handles.into_iter().enumerate() {
         let data_chunk = handle.await.map_err(|e| e.to_string())??;
         let chunk_bytes = data_chunk
             .bytes()
             .await
             .map_err(|e| format!("Failed to parse chunk to bytes: {e}"))?;
-        data_chunks.push((i, chunk_bytes));
+        data_chunks[i] = chunk_bytes;
     }
-    data_chunks.sort_unstable_by_key(|(i, _data)| *i);
-    Ok(data_chunks
-        .into_iter()
-        .map(|(_i, data)| data)
-        .collect::<Vec<_>>()
-        .concat())
+    Ok(data_chunks.concat())
 }
 
 async fn ts_to_mp3(input: &Path, output: &Path) -> Result<(), String> {
