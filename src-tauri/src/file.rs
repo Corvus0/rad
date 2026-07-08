@@ -67,6 +67,7 @@ async fn download_file(
 
 async fn download_chunks(chunks: &[String], client: &Client) -> Result<Vec<u8>, String> {
     let mut set = JoinSet::new();
+    let size = chunks.len();
     for (i, chunk) in chunks.iter().enumerate() {
         let client = client.clone();
         let chunk = chunk.clone();
@@ -77,19 +78,26 @@ async fn download_chunks(chunks: &[String], client: &Client) -> Result<Vec<u8>, 
                     .get(&chunk)
                     .send()
                     .await
-                    .map_err(|e| format!("Failed to download chunk {chunk}: {e}"))?
+                    .map_err(|e| format!("Failed to download chunk {i}/{size} ({chunk}): {e}"))?
                     .bytes()
                     .await
-                    .map_err(|e| format!("Failed to parse chunk to bytes: {e}"))?,
+                    .map_err(|e| {
+                        format!("Failed to parse chunk {i}/{size} to bytes ({chunk}): {e}")
+                    })?,
             ))
         });
     }
-    let mut data_chunks = vec![Default::default(); chunks.len()];
+    let mut data_chunks = vec![None; size];
     while let Some(res) = set.join_next().await {
         let (i, bytes) = res.map_err(|e| e.to_string())??;
-        data_chunks[i] = bytes;
+        data_chunks[i] = Some(bytes);
     }
-    Ok(data_chunks.concat())
+    Ok(data_chunks
+        .into_iter()
+        .enumerate()
+        .map(|(i, chunk)| chunk.ok_or(format!("Missing chunk at index {i}/{size}")))
+        .collect::<Result<Vec<_>, _>>()?
+        .concat())
 }
 
 async fn ts_to_mp3(input: &Path, output: &Path) -> Result<(), String> {
