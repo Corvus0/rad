@@ -2,7 +2,7 @@ use crate::DownloadState;
 use crate::downloads::{DownloadInput, DownloadItem};
 use std::path::PathBuf;
 use tauri::State;
-use tokio::spawn;
+use tokio::task::JoinSet;
 
 #[tauri::command]
 pub async fn get_downloads(state: State<'_, DownloadState>) -> Result<Vec<DownloadItem>, String> {
@@ -109,20 +109,20 @@ pub async fn queue_download(
 #[tauri::command]
 pub async fn queue_downloads(state: State<'_, DownloadState>) -> Result<(), String> {
     let queue = state.queue.lock().await;
-    let handles: Vec<_> = state
+    let mut set = JoinSet::new();
+    state
         .downloads
         .read()
         .await
         .values()
         .filter(|d| d.is_initial())
-        .map(|d| {
+        .for_each(|d| {
             let id = d.id();
             let queue = queue.clone();
-            spawn(async move { queue.send(id).await.map_err(|e| e.to_string()) })
-        })
-        .collect();
-    for handle in handles {
-        handle.await.map_err(|e| e.to_string())??;
+            set.spawn(async move { queue.send(id).await.map_err(|e| e.to_string()) });
+        });
+    while let Some(res) = set.join_next().await {
+        res.map_err(|e| e.to_string())??;
     }
     Ok(())
 }

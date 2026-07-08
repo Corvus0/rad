@@ -7,7 +7,7 @@ use tauri::State;
 use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
-    spawn,
+    task::JoinSet,
 };
 
 pub async fn download_audio(
@@ -66,28 +66,28 @@ async fn download_file(
 }
 
 async fn download_chunks(chunks: &[String], client: &Client) -> Result<Vec<u8>, String> {
-    let handles: Vec<_> = chunks
-        .iter()
-        .map(|chunk| {
-            let client = client.clone();
-            let chunk = chunk.clone();
-            spawn(async move {
+    let mut set = JoinSet::new();
+    for (i, chunk) in chunks.iter().enumerate() {
+        let client = client.clone();
+        let chunk = chunk.clone();
+        set.spawn(async move {
+            Ok::<_, String>((
+                i,
                 client
                     .get(&chunk)
                     .send()
                     .await
-                    .map_err(|e| format!("Failed to download chunk {chunk}: {e}"))
-            })
-        })
-        .collect();
+                    .map_err(|e| format!("Failed to download chunk {chunk}: {e}"))?
+                    .bytes()
+                    .await
+                    .map_err(|e| format!("Failed to parse chunk to bytes: {e}"))?,
+            ))
+        });
+    }
     let mut data_chunks = vec![Default::default(); chunks.len()];
-    for (i, handle) in handles.into_iter().enumerate() {
-        let data_chunk = handle.await.map_err(|e| e.to_string())??;
-        let chunk_bytes = data_chunk
-            .bytes()
-            .await
-            .map_err(|e| format!("Failed to parse chunk to bytes: {e}"))?;
-        data_chunks[i] = chunk_bytes;
+    while let Some(res) = set.join_next().await {
+        let (i, bytes) = res.map_err(|e| e.to_string())??;
+        data_chunks[i] = bytes;
     }
     Ok(data_chunks.concat())
 }
