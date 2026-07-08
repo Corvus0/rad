@@ -1,5 +1,8 @@
 use regex::Regex;
-use reqwest::header::REFERER;
+use reqwest::{
+    Client,
+    header::{ACCEPT, HeaderMap, InvalidHeaderValue, REFERER, USER_AGENT},
+};
 use scraper::{Html, Selector};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -9,8 +12,12 @@ pub trait Parser {
     fn title(&self) -> &str;
     fn extension(&self) -> &str;
 
-    fn headers(&self) -> HashMap<String, String> {
-        HashMap::new()
+    fn chunks(&self) -> Option<&[String]> {
+        None
+    }
+
+    fn headers(&self) -> Option<&HashMap<String, String>> {
+        None
     }
 }
 
@@ -54,12 +61,15 @@ impl Parser for SoundgasmParser {
 
 pub struct VocarooParser {
     audio: String,
+    headers: HashMap<String, String>,
 }
 
 impl VocarooParser {
     pub fn new(id: &str) -> Self {
         let audio = format!("https://media1.vocaroo.com/mp3{id}");
-        Self { audio }
+        let mut headers = HashMap::new();
+        headers.insert(REFERER.to_string(), "https://vocaroo.com/".to_owned());
+        Self { audio, headers }
     }
 }
 
@@ -76,10 +86,8 @@ impl Parser for VocarooParser {
         "mp3"
     }
 
-    fn headers(&self) -> HashMap<String, String> {
-        let mut headers = HashMap::new();
-        headers.insert(REFERER.to_string(), "https://vocaroo.com/".to_owned());
-        headers
+    fn headers(&self) -> Option<&HashMap<String, String>> {
+        Some(&self.headers)
     }
 }
 
@@ -224,6 +232,80 @@ impl Parser for WhypParser {
     }
 }
 
+pub struct ErocastParser {
+    audio: String,
+    title: String,
+    chunks: Vec<String>,
+}
+
+impl ErocastParser {
+    const CHUNK_REGEX: &str = r"https:\/\/erocast.s3.us-east-2.wasabisys.com\/\d+\/\w+\.ts";
+
+    pub async fn new(url: &str) -> Result<Self, String> {
+        let (audio, title, chunks) = Self::parse_info(url).await?;
+        Ok(Self {
+            audio,
+            title,
+            chunks,
+        })
+    }
+
+    async fn parse_info(url: &str) -> Result<(String, String, Vec<String>), String> {
+        let client = Client::new();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            ACCEPT,
+            "application/json"
+                .parse()
+                .map_err(|e: InvalidHeaderValue| e.to_string())?,
+        );
+        headers.insert(
+            USER_AGENT,
+            "rad/0.2.0"
+                .parse()
+                .map_err(|e: InvalidHeaderValue| e.to_string())?,
+        );
+        let body = client
+            .get(url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?
+            .text()
+            .await
+            .map_err(|e| e.to_string())?;
+        let json: Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
+        let audio = json["file_url"]
+            .as_str()
+            .ok_or("File URL is missing from JSON response")?
+            .to_owned();
+        let title = json["title"]
+            .as_str()
+            .ok_or("Title is missing from JSON response")?
+            .to_owned();
+        let chunks = chunks_from_playlist(&audio, Self::CHUNK_REGEX).await?;
+        Ok((audio, title, chunks))
+    }
+}
+
+impl Parser for ErocastParser {
+    fn audio(&self) -> &str {
+        &self.audio
+    }
+
+    fn title(&self) -> &str {
+        &self.title
+    }
+
+    fn extension(&self) -> &'static str {
+        "ts"
+    }
+
+    fn chunks(&self) -> Option<&[String]> {
+        Some(self.chunks.as_slice())
+    }
+}
+
 async fn info_from_page(
     url: &str,
     audio_regex: &str,
@@ -235,7 +317,7 @@ async fn info_from_page(
     let html = response
         .text()
         .await
-        .map_err(|e| format!("Failed to parse html to text {url}: {e}"))?;
+        .map_err(|e| format!("Failed to parse HTML to text {url}: {e}"))?;
     let audio: String = Regex::new(audio_regex)
         .map_err(|e| e.to_string())
         .and_then(|re| {
@@ -272,4 +354,21 @@ async fn info_from_page(
         .trim()
         .to_owned();
     Ok((audio, title, extension))
+}
+
+async fn chunks_from_playlist(url: &str, chunk_regex: &str) -> Result<Vec<String>, String> {
+    let response = reqwest::get(url)
+        .await
+        .map_err(|e| format!("Failed to fetch playlist {url}: {e}"))?;
+    let playlist = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to parser playlist to text {url}: {e}"))?;
+    Regex::new(chunk_regex)
+        .map_err(|e| e.to_string())
+        .map(|re| {
+            re.find_iter(&playlist)
+                .map(|m| m.as_str().to_owned())
+                .collect()
+        })
 }

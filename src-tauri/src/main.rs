@@ -4,6 +4,7 @@
 mod app;
 mod commands;
 mod downloads;
+mod file;
 mod parsers;
 use app::{DownloadState, setup_app};
 use commands::{

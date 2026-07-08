@@ -1,5 +1,8 @@
-use crate::parsers::{AudiochanParser, Parser, SoundgasmParser, VocarooParser, WhypParser};
+use crate::parsers::{
+    AudiochanParser, ErocastParser, Parser, SoundgasmParser, VocarooParser, WhypParser,
+};
 use regex::Regex;
+use std::borrow::ToOwned;
 use std::collections::HashMap;
 
 #[derive(
@@ -28,6 +31,7 @@ struct DownloadInfo {
     title: String,
     extension: String,
     headers: HashMap<String, String>,
+    chunks: Vec<String>,
 }
 
 impl From<Box<dyn Parser>> for DownloadInfo {
@@ -35,12 +39,14 @@ impl From<Box<dyn Parser>> for DownloadInfo {
         let audio = parser.audio().to_owned();
         let title = parser.title().to_owned();
         let extension = parser.extension().to_owned();
-        let headers = parser.headers();
+        let headers = parser.headers().map_or(HashMap::new(), ToOwned::to_owned);
+        let chunks = parser.chunks().map_or(Vec::new(), ToOwned::to_owned);
         Self {
             audio,
             title,
             extension,
             headers,
+            chunks,
         }
     }
 }
@@ -86,6 +92,7 @@ impl DownloadInput {
                 Box::new(AudiochanParser::new(self.url()).await?)
             }
             () if hostname.contains("whyp.it") => Box::new(WhypParser::new(self.url()).await?),
+            () if hostname.contains("erocast.me") => Box::new(ErocastParser::new(&self.url).await?),
             () => {
                 return Err(format!(
                     "URL contains invalid or unsupported host: {}",
@@ -146,6 +153,10 @@ impl DownloadItem {
         &self.info.title
     }
 
+    pub fn extension(&self) -> &str {
+        &self.info.extension
+    }
+
     pub fn set_status(&mut self, status: DownloadStatus) {
         self.status = status;
     }
@@ -170,10 +181,14 @@ impl DownloadItem {
         &self.info.headers
     }
 
+    pub fn chunks(&self) -> &[String] {
+        self.info.chunks.as_slice()
+    }
+
     pub fn filename(&self) -> Result<String, String> {
         let filename = format!(
-            "[{}] [{}] {}.{}",
-            &self.input.sub, &self.input.op, &self.info.title, &self.info.extension,
+            "[{}] [{}] {}",
+            &self.input.sub, &self.input.op, &self.info.title,
         );
         Regex::new(r#"[<>:"/\\\?\*|]+"#)
             .map_err(|e| format!("Invalid regex pattern: {e}"))
