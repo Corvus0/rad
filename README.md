@@ -10,6 +10,7 @@ Currently supported hosts:
 - Whyp
 - Vocaroo
 - Audiochan
+- Erocast
 
 ## Screenshots
 
